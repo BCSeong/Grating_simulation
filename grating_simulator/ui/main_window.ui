@@ -1,0 +1,2175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1220</width>
+    <height>776</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Grating Simulrator ver 1.0.0</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout_61">
+    <item row="0" column="0">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>3</number>
+      </property>
+      <widget class="QWidget" name="gratingGeneratorTab">
+       <attribute name="title">
+        <string>Grating Generator</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="1" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_5">
+            <property name="text">
+             <string>Check the parameter guide</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_3">
+            <property name="text">
+             <string>Initialize</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_4">
+            <property name="text">
+             <string>Run</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="0" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QGroupBox" name="groupBox_4">
+            <property name="title">
+             <string>Parameters</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_6">
+             <item row="0" column="0">
+              <layout class="QHBoxLayout" name="horizontalLayout">
+               <item>
+                <widget class="QGroupBox" name="groupBox">
+                 <property name="title">
+                  <string>General Parameters</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout">
+                  <item row="0" column="0">
+                   <layout class="QVBoxLayout" name="verticalLayout">
+                    <item>
+                     <layout class="QFormLayout" name="formLayout">
+                      <item row="0" column="0">
+                       <widget class="QLabel" name="headerLabel">
+                        <property name="text">
+                         <string>Header (Prefix)</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QLineEdit" name="headerLineEdit">
+                        <property name="text">
+                         <string>test_</string>
+                        </property>
+                        <property name="clearButtonEnabled">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="0">
+                       <widget class="QLabel" name="samplingPixelSizeUmLabel">
+                        <property name="text">
+                         <string>Sampling Pixel Size [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="1">
+                       <widget class="QDoubleSpinBox" name="samplingPixelSizeUmDoubleSpinBox">
+                        <property name="decimals">
+                         <number>5</number>
+                        </property>
+                        <property name="singleStep">
+                         <double>0.010000000000000</double>
+                        </property>
+                        <property name="value">
+                         <double>0.050000000000000</double>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="0">
+                       <widget class="QLabel" name="invertReusltLabel">
+                        <property name="text">
+                         <string>Invert Reuslt</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="1">
+                       <widget class="QCheckBox" name="invertReusltCheckBox"/>
+                      </item>
+                      <item row="3" column="0">
+                       <widget class="QLabel" name="saveReulstLabel">
+                        <property name="text">
+                         <string>Save Reulst</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="3" column="1">
+                       <widget class="QCheckBox" name="saveCheckBox">
+                        <property name="checked">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                    <item>
+                     <layout class="QHBoxLayout" name="horizontalLayout_2">
+                      <item>
+                       <widget class="QPushButton" name="pushButton_save">
+                        <property name="text">
+                         <string>Save As Json</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="pushButton_load">
+                        <property name="text">
+                         <string>Load Json</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="groupBox_2">
+                 <property name="title">
+                  <string>Grating Parameters</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_3">
+                  <item row="0" column="0">
+                   <layout class="QHBoxLayout" name="horizontalLayout_4">
+                    <item>
+                     <layout class="QFormLayout" name="formLayout_2">
+                      <item row="0" column="0">
+                       <widget class="QLabel" name="periodOfPatternUmLabel">
+                        <property name="text">
+                         <string>Period of Pattern [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QDoubleSpinBox" name="periodOfPatternUmDoubleSpinBox">
+                        <property name="singleStep">
+                         <double>0.100000000000000</double>
+                        </property>
+                        <property name="value">
+                         <double>20.800000000000001</double>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="0">
+                       <widget class="QLabel" name="heightOfSawtoothUmLabel">
+                        <property name="text">
+                         <string>Height of Sawtooth [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="1">
+                       <widget class="QDoubleSpinBox" name="heightOfSawtoothUmDoubleSpinBox">
+                        <property name="singleStep">
+                         <double>0.100000000000000</double>
+                        </property>
+                        <property name="value">
+                         <double>5.200000000000000</double>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="0">
+                       <widget class="QLabel" name="periodOfSawtoothUmLabel">
+                        <property name="text">
+                         <string>Period of Sawtooth [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="2" column="1">
+                       <widget class="QDoubleSpinBox" name="periodOfSawtoothUmDoubleSpinBox">
+                        <property name="singleStep">
+                         <double>0.100000000000000</double>
+                        </property>
+                        <property name="value">
+                         <double>1.980000000000000</double>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="3" column="0">
+                       <widget class="QLabel" name="widthOfStemUmLabel">
+                        <property name="text">
+                         <string>Width of Stem [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="3" column="1">
+                       <widget class="QDoubleSpinBox" name="widthOfStemUmDoubleSpinBox">
+                        <property name="singleStep">
+                         <double>0.100000000000000</double>
+                        </property>
+                        <property name="value">
+                         <double>3.780000000000000</double>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="4" column="0">
+                       <widget class="QLabel" name="offsetBtwLinesLabel">
+                        <property name="text">
+                         <string>Offset btw Lines</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="4" column="1">
+                       <widget class="QDoubleSpinBox" name="offsetBtwLinesDoubleSpinBox">
+                        <property name="singleStep">
+                         <double>0.100000000000000</double>
+                        </property>
+                        <property name="value">
+                         <double>6.620000000000000</double>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="5" column="0">
+                       <widget class="QLabel" name="parameterConsistencyCheckLabel">
+                        <property name="text">
+                         <string>Parameter Consistency Check</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="5" column="1">
+                       <widget class="QLineEdit" name="parameterConsistencyCheckLineEdit">
+                        <property name="readOnly">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                    <item>
+                     <layout class="QFormLayout" name="formLayout_4">
+                      <item row="0" column="0">
+                       <widget class="QLabel" name="numOfLinesLabel">
+                        <property name="text">
+                         <string>Num of Lines</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QSpinBox" name="numOfLinesSpinBox">
+                        <property name="minimum">
+                         <number>1</number>
+                        </property>
+                        <property name="maximum">
+                         <number>999</number>
+                        </property>
+                        <property name="value">
+                         <number>1</number>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="0">
+                       <widget class="QLabel" name="lengthOfLineUmLabel">
+                        <property name="text">
+                         <string>Length of Line [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="1">
+                       <widget class="QDoubleSpinBox" name="lengthOfLineUmDoubleSpinBox">
+                        <property name="maximum">
+                         <double>10000.000000000000000</double>
+                        </property>
+                        <property name="singleStep">
+                         <double>10.000000000000000</double>
+                        </property>
+                        <property name="value">
+                         <double>20.000000000000000</double>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QGroupBox" name="groupBox_8">
+                    <property name="title">
+                     <string>Review</string>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_12">
+                     <item row="0" column="0">
+                      <layout class="QFormLayout" name="formLayout_11">
+                       <item row="0" column="0">
+                        <widget class="QLabel" name="imageHeightPxLabel">
+                         <property name="text">
+                          <string>Image Height [px]</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="0" column="1">
+                        <widget class="QLineEdit" name="imageHeightPxLineEdit">
+                         <property name="readOnly">
+                          <bool>true</bool>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="1" column="0">
+                        <widget class="QLabel" name="imageWidthPxLabel">
+                         <property name="text">
+                          <string>Image Width [px]</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="1" column="1">
+                        <widget class="QLineEdit" name="imageWidthPxLineEdit">
+                         <property name="readOnly">
+                          <bool>true</bool>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="2" column="0">
+                        <widget class="QLabel" name="imageHeightMmLabel">
+                         <property name="text">
+                          <string>Image Height [mm]</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="2" column="1">
+                        <widget class="QLineEdit" name="imageHeightMmLineEdit">
+                         <property name="readOnly">
+                          <bool>true</bool>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="3" column="0">
+                        <widget class="QLabel" name="imageWidthMmLabel">
+                         <property name="text">
+                          <string>Image Width [mm]</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="3" column="1">
+                        <widget class="QLineEdit" name="imageWidthMmLineEdit">
+                         <property name="readOnly">
+                          <bool>true</bool>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="groupBox_3">
+                 <property name="title">
+                  <string>Advanced Parameters</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_4">
+                  <item row="1" column="0">
+                   <widget class="QGroupBox" name="EdgeRounderGroupBox">
+                    <property name="title">
+                     <string>Edge Rounder</string>
+                    </property>
+                    <property name="checkable">
+                     <bool>false</bool>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_5">
+                     <item row="0" column="0">
+                      <layout class="QFormLayout" name="formLayout_6">
+                       <item row="0" column="0">
+                        <widget class="QLabel" name="methodLabel">
+                         <property name="text">
+                          <string>Method</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="0" column="1">
+                        <widget class="QComboBox" name="methodComboBox">
+                         <item>
+                          <property name="text">
+                           <string>Auto</string>
+                          </property>
+                         </item>
+                         <item>
+                          <property name="text">
+                           <string>None</string>
+                          </property>
+                         </item>
+                         <item>
+                          <property name="text">
+                           <string>User</string>
+                          </property>
+                         </item>
+                        </widget>
+                       </item>
+                       <item row="1" column="0">
+                        <widget class="QLabel" name="factorLabel">
+                         <property name="text">
+                          <string>Factor</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="1" column="1">
+                        <widget class="QSpinBox" name="factorSpinBox">
+                         <property name="minimum">
+                          <number>1</number>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <layout class="QFormLayout" name="formLayout_7">
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="diameterOfEdgeOfSawtoothUmLabel">
+                      <property name="text">
+                       <string>Diameter of Edge of Sawtooth [um]</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QDoubleSpinBox" name="diameterOfEdgeOfSawtoothUmDoubleSpinBox">
+                      <property name="singleStep">
+                       <double>0.100000000000000</double>
+                      </property>
+                      <property name="value">
+                       <double>0.400000000000000</double>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="2" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <item>
+           <widget class="QGroupBox" name="groupBox_5">
+            <property name="title">
+             <string>Grating Before Rounding</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_7"/>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_6">
+            <property name="title">
+             <string>Grating After Rounding</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_8"/>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_7">
+            <property name="title">
+             <string>Genetated Grating Mask</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_9"/>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="microscopeImageSimulatorTab">
+       <attribute name="title">
+        <string>Microscope Image Simulator</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_16">
+        <item row="3" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_13">
+          <item>
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="OTFPushButton">
+            <property name="text">
+             <string>4. Calcurate OTF</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="RunPushButton">
+            <property name="text">
+             <string>5. Generate Microscope Image</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="2" column="0">
+         <widget class="QGroupBox" name="microscopeParamsGroupBox">
+          <property name="title">
+           <string>Parameters</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_10">
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_7">
+             <item>
+              <widget class="QGroupBox" name="groupBox_9">
+               <property name="title">
+                <string>General Parameters (based on EPI Incoherent Microscopy)</string>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_13">
+                <item row="0" column="0">
+                 <layout class="QHBoxLayout" name="horizontalLayout_9">
+                  <item>
+                   <layout class="QFormLayout" name="formLayout_3">
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="headerLabel_2">
+                      <property name="text">
+                       <string>Header (Prefix)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="nAOfOpticsLabel">
+                      <property name="text">
+                       <string>NA of Optics</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QDoubleSpinBox" name="nAOfOpticsDoubleSpinBox">
+                      <property name="singleStep">
+                       <double>0.100000000000000</double>
+                      </property>
+                      <property name="value">
+                       <double>0.800000000000000</double>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QLabel" name="saveResultLabel">
+                      <property name="text">
+                       <string>Save Result</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QCheckBox" name="saveResultCheckBox">
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLineEdit" name="headerLineEdit_2">
+                      <property name="text">
+                       <string>test_</string>
+                      </property>
+                      <property name="clearButtonEnabled">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="0">
+                     <widget class="QLabel" name="simulationConditionLabel">
+                      <property name="text">
+                       <string>Simulation Condition</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="1">
+                     <widget class="QLineEdit" name="simulationConditionLineEdit"/>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QGroupBox" name="customSpectrumGroupBox">
+                  <property name="title">
+                   <string>Custom Source Spectrum</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                  <property name="checked">
+                   <bool>false</bool>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_8">
+                   <item>
+                    <layout class="QFormLayout" name="formLayout_5">
+                     <item row="0" column="0">
+                      <widget class="QLabel" name="spectrumMinUmLabel">
+                       <property name="text">
+                        <string>Spectrum Min [um]</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QDoubleSpinBox" name="spectrumMinUmDoubleSpinBox">
+                       <property name="decimals">
+                        <number>4</number>
+                       </property>
+                       <property name="value">
+                        <double>0.587600000000000</double>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="spectrumMaxUmLabel">
+                       <property name="text">
+                        <string>Spectrum Max [um]</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <widget class="QDoubleSpinBox" name="spectrumMaxUmDoubleSpinBox">
+                       <property name="decimals">
+                        <number>4</number>
+                       </property>
+                       <property name="value">
+                        <double>0.587600000000000</double>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="0">
+                      <widget class="QLabel" name="spectrumStepLabel">
+                       <property name="text">
+                        <string>Spectrum Step</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="1">
+                      <widget class="QDoubleSpinBox" name="spectrumStepDoubleSpinBox">
+                       <property name="singleStep">
+                        <double>0.100000000000000</double>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QGroupBox" name="groupBox_11">
+               <property name="title">
+                <string>Input Image Parameters</string>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_15">
+                <item>
+                 <widget class="QGroupBox" name="groupBox_12">
+                  <property name="title">
+                   <string>Edit</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                  <property name="checked">
+                   <bool>false</bool>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_15">
+                   <item row="0" column="0">
+                    <layout class="QFormLayout" name="formLayout_8">
+                     <item row="0" column="0">
+                      <widget class="QLabel" name="samplingSizeUmLabel">
+                       <property name="text">
+                        <string>Sampling Size [um]</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QDoubleSpinBox" name="samplingSizeUmDoubleSpinBox"/>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QGroupBox" name="groupBox_29">
+                  <property name="title">
+                   <string>Review</string>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_11">
+                   <item row="0" column="0">
+                    <layout class="QFormLayout" name="formLayout_10">
+                     <item row="0" column="0">
+                      <widget class="QLabel" name="heightPxLabel">
+                       <property name="text">
+                        <string>Height [px]</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QLineEdit" name="heightPxLineEdit">
+                       <property name="readOnly">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="widthPxLabel">
+                       <property name="text">
+                        <string>Width [px]</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <widget class="QLineEdit" name="widthPxLineEdit">
+                       <property name="readOnly">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item row="0" column="1">
+                    <layout class="QFormLayout" name="formLayout_9">
+                     <item row="0" column="0">
+                      <widget class="QLabel" name="heightMmLabel">
+                       <property name="text">
+                        <string>Height [mm]</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QLineEdit" name="heightMmLineEdit">
+                       <property name="readOnly">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="widthMmLabel">
+                       <property name="text">
+                        <string>Width [mm]</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <widget class="QLineEdit" name="widthMmLineEdit">
+                       <property name="readOnly">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_12">
+          <item>
+           <widget class="QGroupBox" name="loadedImageGroupBox">
+            <property name="title">
+             <string>Loaded Image</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_18"/>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="calcuratedOTFGroupBox">
+            <property name="title">
+             <string>Calcurated OTF (depend on NA &amp; Sampling Size)</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_20"/>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="resultImageGroupBox">
+            <property name="title">
+             <string>Result Image</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_21"/>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="1" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_14">
+          <item>
+           <widget class="QPushButton" name="initializePushButton">
+            <property name="text">
+             <string>3. Initialize</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item row="0" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_11">
+          <item>
+           <widget class="QPushButton" name="loadGratingPushButton">
+            <property name="text">
+             <string>1. Load Grating image (*.bmp)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="loadGratingParamsPushButton">
+            <property name="text">
+             <string>2. Load Grating Parameter (*.json)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>Image Stitching Wizard</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>Grating Projection Simulator</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_32">
+          <item>
+           <widget class="QPushButton" name="prjLoadGratingPushButton">
+            <property name="text">
+             <string>1. Load Grating image (*.bmp)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="prjLoadGratingParamsPushButton">
+            <property name="text">
+             <string>2. Load Grating Parameter (*.json)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_11">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_31">
+          <item>
+           <widget class="QPushButton" name="prjInitializePushButton">
+            <property name="text">
+             <string>3. Initialize</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="prjAutoInitializeCheckBox">
+            <property name="text">
+             <string>Auto Initialize</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_10">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="microscopeParamsGroupBox_3">
+          <property name="title">
+           <string>Parameters</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_33">
+           <item>
+            <widget class="QGroupBox" name="groupBox_26">
+             <property name="title">
+              <string>General Parameters</string>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_46">
+              <item row="0" column="0">
+               <layout class="QFormLayout" name="formLayout_28">
+                <item row="0" column="0">
+                 <widget class="QLabel" name="headerPrefixLabel">
+                  <property name="text">
+                   <string>Header (Prefix)</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QLineEdit" name="prjHeaderPrefixLineEdit">
+                  <property name="text">
+                   <string>test_</string>
+                  </property>
+                  <property name="placeholderText">
+                   <string>test_</string>
+                  </property>
+                  <property name="clearButtonEnabled">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="saveResultLabel_4">
+                  <property name="text">
+                   <string>Save Result</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QCheckBox" name="prjSaveResultCheckBox">
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="0">
+                 <widget class="QLabel" name="simulationConditionLabel_4">
+                  <property name="text">
+                   <string>Simulation Condition</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="1">
+                 <widget class="QLineEdit" name="prjSimulationConditionLineEdit">
+                  <property name="readOnly">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="2" column="0">
+               <widget class="QGroupBox" name="prjCustomSpectrumGroupBox">
+                <property name="title">
+                 <string>Custom Source Spectrum</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_36">
+                 <item>
+                  <layout class="QFormLayout" name="formLayout_24">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="spectrumMinUmLabel_3">
+                     <property name="text">
+                      <string>Spectrum Min [um]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QDoubleSpinBox" name="prjSpectrumMinUmDoubleSpinBox">
+                     <property name="decimals">
+                      <number>4</number>
+                     </property>
+                     <property name="value">
+                      <double>0.587600000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="spectrumMaxUmLabel_3">
+                     <property name="text">
+                      <string>Spectrum Max [um]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QDoubleSpinBox" name="prjSpectrumMaxUmDoubleSpinBox">
+                     <property name="decimals">
+                      <number>4</number>
+                     </property>
+                     <property name="value">
+                      <double>0.587600000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="spectrumStepLabel_3">
+                     <property name="text">
+                      <string>Spectrum Step</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1">
+                    <widget class="QDoubleSpinBox" name="prjSpectrumStepDoubleSpinBox">
+                     <property name="singleStep">
+                      <double>0.100000000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <layout class="QHBoxLayout" name="horizontalLayout_35">
+                <item>
+                 <widget class="QPushButton" name="prjPushButton_save">
+                  <property name="text">
+                   <string>Save As Json</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="prjPushButton_load">
+                  <property name="text">
+                   <string>Load Json</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_27">
+             <property name="title">
+              <string>Projection Parameters</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_34">
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_8">
+                <item>
+                 <layout class="QFormLayout" name="formLayout_29">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="z0GratingToLensMmLabel">
+                    <property name="text">
+                     <string>z0 (grating to lens) [mm]</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QDoubleSpinBox" name="prjZ0GratingToLensMmDoubleSpinBox">
+                    <property name="decimals">
+                     <number>3</number>
+                    </property>
+                    <property name="value">
+                     <double>26.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="z1LensToProjectionPlaneMmLabel">
+                    <property name="text">
+                     <string>z1 (lens to projection plane) [mm]</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QDoubleSpinBox" name="prjZ1LensToProjectionPlaneMmDoubleSpinBox">
+                    <property name="decimals">
+                     <number>3</number>
+                    </property>
+                    <property name="maximum">
+                     <double>9999.000000000000000</double>
+                    </property>
+                    <property name="value">
+                     <double>510.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="pupilDiameterMmLabel">
+                    <property name="text">
+                     <string>Pupil Diameter [mm]</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QDoubleSpinBox" name="prjPupilDiameterMmDoubleSpinBox">
+                    <property name="decimals">
+                     <number>3</number>
+                    </property>
+                    <property name="value">
+                     <double>6.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="defocusMmLabel">
+                    <property name="text">
+                     <string>Defocus [mm]</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QDoubleSpinBox" name="prjDefocusMmDoubleSpinBox">
+                    <property name="decimals">
+                     <number>3</number>
+                    </property>
+                    <property name="value">
+                     <double>10.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="QLabel" name="resizeFactorPixelBinningLabel">
+                    <property name="text">
+                     <string>Resize Factor along height (pixel binning)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="1">
+                   <widget class="QDoubleSpinBox" name="prjResizeFactorPixelBinningDoubleSpinBox">
+                    <property name="decimals">
+                     <number>4</number>
+                    </property>
+                    <property name="value">
+                     <double>1.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="0">
+                   <widget class="QLabel" name="resizeFactorAlongHeightPixelBinningLabel">
+                    <property name="text">
+                     <string>Resize Factor along width (pixel binning)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="1">
+                   <widget class="QDoubleSpinBox" name="prjResizeFactorAlongWidthPixelBinningDoubleSpinBox">
+                    <property name="decimals">
+                     <number>4</number>
+                    </property>
+                    <property name="minimum">
+                     <double>1.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QGroupBox" name="prjEdgeRemoverGroupBox">
+                  <property name="title">
+                   <string>Edge Remover</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                  <property name="checked">
+                   <bool>false</bool>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_48">
+                   <item row="0" column="0">
+                    <layout class="QFormLayout" name="formLayout_23">
+                     <item row="0" column="0">
+                      <widget class="QLabel" name="edgeRemoverFactorLabel">
+                       <property name="text">
+                        <string>Edge Remover Factor</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QDoubleSpinBox" name="prjEdgeRemoverFactorDoubleSpinBox">
+                       <property name="value">
+                        <double>1.000000000000000</double>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QGroupBox" name="groupBox_28">
+                <property name="title">
+                 <string>Review</string>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_4">
+                 <item>
+                  <layout class="QFormLayout" name="formLayout_30">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="objectSpaceFLabel">
+                     <property name="text">
+                      <string>Object Space f/#</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLineEdit" name="prjObjectSpaceFLineEdit">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="imageSpaceNALabel">
+                     <property name="text">
+                      <string>Image Space NA</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="prjImageSpaceNALineEdit">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="magnificationLabel">
+                     <property name="text">
+                      <string>Magnification</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1">
+                    <widget class="QLineEdit" name="prjMagnificationLineEdit">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="4" column="0">
+                    <widget class="QLabel" name="projectedImageHeightMmLabel">
+                     <property name="text">
+                      <string>Projected Image Height [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="4" column="1">
+                    <widget class="QLineEdit" name="prjProjectedImageHeightMmLineEdit"/>
+                   </item>
+                   <item row="3" column="0">
+                    <widget class="QLabel" name="fullDepthOfFieldMmLabel">
+                     <property name="text">
+                      <string>Full Depth of Field [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="3" column="1">
+                    <widget class="QLineEdit" name="prjFullDepthOfFieldMmLineEdit"/>
+                   </item>
+                   <item row="5" column="0">
+                    <widget class="QLabel" name="projectedImageWidthMmLabel">
+                     <property name="text">
+                      <string>Projected Image Width  [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="5" column="1">
+                    <widget class="QLineEdit" name="prjProjectedImageWidthMmLineEdit"/>
+                   </item>
+                   <item row="6" column="0">
+                    <widget class="QLabel" name="projectedImageSamplingSizeUmLabel">
+                     <property name="text">
+                      <string>Projected Image Sampling Size [um]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="6" column="1">
+                    <widget class="QLineEdit" name="prjProjectedImageSamplingSizeUmLineEdit"/>
+                   </item>
+                   <item row="7" column="0">
+                    <widget class="QLabel" name="resizedImageHeightMmLabel">
+                     <property name="text">
+                      <string>Resized Image Height [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="7" column="1">
+                    <widget class="QLineEdit" name="prjResizedImageHeightMmLineEdit"/>
+                   </item>
+                   <item row="8" column="0">
+                    <widget class="QLabel" name="resizedImageWidthMmLabel">
+                     <property name="text">
+                      <string>Resized Image Width [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="8" column="1">
+                    <widget class="QLineEdit" name="prjResizedImageWidthMmLineEdit"/>
+                   </item>
+                   <item row="9" column="0">
+                    <widget class="QLabel" name="resizedImageSamplingSizeUmLabel">
+                     <property name="text">
+                      <string>Resized Image Sampling Size [um]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="9" column="1">
+                    <widget class="QLineEdit" name="prjResizedImageSamplingSizeUmLineEdit"/>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_24">
+             <property name="title">
+              <string>Input Image Parameters</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_5">
+              <item>
+               <widget class="QGroupBox" name="groupBox_30">
+                <property name="title">
+                 <string>Review</string>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_6">
+                 <item>
+                  <widget class="QGroupBox" name="prjCustomImagePropertyGroupBox">
+                   <property name="title">
+                    <string>Edit</string>
+                   </property>
+                   <property name="checkable">
+                    <bool>true</bool>
+                   </property>
+                   <property name="checked">
+                    <bool>false</bool>
+                   </property>
+                   <layout class="QGridLayout" name="gridLayout_37">
+                    <item row="0" column="0">
+                     <layout class="QFormLayout" name="formLayout_25">
+                      <item row="0" column="0">
+                       <widget class="QLabel" name="samplingSizeUmLabel_3">
+                        <property name="text">
+                         <string>Sampling Size [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QDoubleSpinBox" name="prjSamplingSizeUmDoubleSpinBox">
+                        <property name="decimals">
+                         <number>5</number>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="0">
+                       <widget class="QLabel" name="periodOfSawtoothUmLabel_3">
+                        <property name="text">
+                         <string>Period of Sawtooth [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="1">
+                       <widget class="QDoubleSpinBox" name="prjPeriodOfSawDoubleSpinBox">
+                        <property name="decimals">
+                         <number>5</number>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <layout class="QFormLayout" name="formLayout_27">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="heightMmLabel_3">
+                     <property name="text">
+                      <string>Height [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLineEdit" name="prjHeightMmLineEdit">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="widthMmLabel_3">
+                     <property name="text">
+                      <string>Width [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="prjWidthMmLineEdit">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <layout class="QFormLayout" name="formLayout_26">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="heightPxLabel_3">
+                     <property name="text">
+                      <string>Height [px]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLineEdit" name="prjHeightPxLineEdit">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="widthPxLabel_3">
+                     <property name="text">
+                      <string>Width [px]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="prjWidthPxLineEdit">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <layout class="QGridLayout" name="gridLayout_45">
+          <item row="0" column="1">
+           <widget class="QPushButton" name="prjOTFPushButton">
+            <property name="text">
+             <string>4. Calcurate OTF</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="prjPlotImageCrsPushButton">
+            <property name="text">
+             <string>6. Plot Image CrossSection</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="prjRunPushButton">
+            <property name="text">
+             <string>5. Generate Projected Image</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="4">
+           <widget class="QPushButton" name="prjPSFcrsPushButton">
+            <property name="text">
+             <string>(optional) Create ZX PSF CrossSection</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <spacer name="horizontalSpacer_9">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="1" column="4">
+           <widget class="QPushButton" name="prjPlotPSFCrspushButton">
+            <property name="text">
+             <string>Plot PSF Profile</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QGridLayout" name="gridLayout_53">
+          <item row="0" column="0">
+           <widget class="QGroupBox" name="prjLoadedImageGroupBox">
+            <property name="title">
+             <string>Loaded Image</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_35"/>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QGroupBox" name="prjResultProjectedImageGroupBox">
+            <property name="title">
+             <string>Projected Image</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_47"/>
+           </widget>
+          </item>
+          <item row="0" column="4">
+           <widget class="QGroupBox" name="prjPSFcrsGroupBox">
+            <property name="title">
+             <string>ZX PSF CrossSection</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_36"/>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QGroupBox" name="prjResultDefocusedImageGroupBox">
+            <property name="title">
+             <string>Projected Image (defocused)</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_51"/>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QGroupBox" name="prjCalcuratedOTFGroupBox">
+            <property name="title">
+             <string>Calcurated OTF (depend on NA &amp; Sampling Size)</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_44"/>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_3">
+       <attribute name="title">
+        <string>Apply Scheimpflug Wizard</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_14">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_37">
+          <item>
+           <widget class="QPushButton" name="aswLoadProjectedFlatImagePushButton">
+            <property name="text">
+             <string>1. Load Projected Flat Image (*.bmp)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="aswLoadProjectorParamsPushButton">
+            <property name="text">
+             <string>2. Load Projector Parameter (*.json)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_12">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_40">
+          <item>
+           <widget class="QPushButton" name="aswInitializePushButton">
+            <property name="text">
+             <string>3. Initialize</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_13">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="microscopeParamsGroupBox_4">
+          <property name="title">
+           <string>Parameters</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_41">
+           <item>
+            <widget class="QGroupBox" name="groupBox_31">
+             <property name="title">
+              <string>General Parameters</string>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_49">
+              <item row="1" column="0">
+               <layout class="QHBoxLayout" name="horizontalLayout_43">
+                <item>
+                 <widget class="QPushButton" name="prjPushButton_save_2">
+                  <property name="text">
+                   <string>Save As Json</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="prjPushButton_load_2">
+                  <property name="text">
+                   <string>Load Json</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="0" column="0">
+               <layout class="QFormLayout" name="formLayout_31">
+                <item row="0" column="0">
+                 <widget class="QLabel" name="headerPrefixLabel_2">
+                  <property name="text">
+                   <string>Header (Prefix)</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QLineEdit" name="prjHeaderPrefixLineEdit_2">
+                  <property name="text">
+                   <string>test_</string>
+                  </property>
+                  <property name="placeholderText">
+                   <string>test_</string>
+                  </property>
+                  <property name="clearButtonEnabled">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="saveResultLabel_5">
+                  <property name="text">
+                   <string>Save Result</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QCheckBox" name="prjSaveResultCheckBox_2">
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="0">
+                 <widget class="QLabel" name="stretchImageToSquareLabel">
+                  <property name="text">
+                   <string>Stretch Image to Square</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="1">
+                 <widget class="QLineEdit" name="stretchImageToSquareLineEdit"/>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_32">
+             <property name="title">
+              <string>Scheimpflug Parameters</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_44">
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_10">
+                <item>
+                 <layout class="QFormLayout" name="formLayout_33">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="xProjectionAngleDegLabel">
+                    <property name="text">
+                     <string>X Projection angle [deg]</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QDoubleSpinBox" name="xProjectionAngleDegDoubleSpinBox"/>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="yProjectionAngleDegLabel">
+                    <property name="text">
+                     <string>Y Projection angle [deg]</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QDoubleSpinBox" name="yProjectionAngleDegDoubleSpinBox"/>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QGroupBox" name="prjEdgeRemoverGroupBox_2">
+                  <property name="title">
+                   <string>Edge Remover</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_50">
+                   <item row="0" column="0">
+                    <layout class="QFormLayout" name="formLayout_34">
+                     <item row="0" column="0">
+                      <widget class="QLabel" name="edgeRemoverFactorLabel_2">
+                       <property name="text">
+                        <string>Edge Remover Factor</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QDoubleSpinBox" name="prjEdgeRemoverFactorDoubleSpinBox_2">
+                       <property name="value">
+                        <double>1.000000000000000</double>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QGroupBox" name="groupBox_33">
+                <property name="title">
+                 <string>Review</string>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_11">
+                 <item>
+                  <layout class="QFormLayout" name="formLayout_35">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="z1WDefocusLensToPlaneMmLabel">
+                     <property name="text">
+                      <string>z1 w/ defocus (lens to plane) [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLineEdit" name="z1WDefocusLensToPlaneMmLineEdit"/>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="xGratingTiltAngleDegLabel">
+                     <property name="text">
+                      <string>X Grating tilt angle [deg]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="xGratingTiltAngleDegLineEdit"/>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="yGratingTiltAngleDegLabel">
+                     <property name="text">
+                      <string>Y Grating tilt angle [deg]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1">
+                    <widget class="QLineEdit" name="yGratingTiltAngleDegLineEdit"/>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_25">
+             <property name="title">
+              <string>Input Image Parameters</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_12">
+              <item>
+               <widget class="QGroupBox" name="groupBox_34">
+                <property name="title">
+                 <string>Review</string>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_13">
+                 <item>
+                  <widget class="QGroupBox" name="prjCustomImagePropertyGroupBox_2">
+                   <property name="title">
+                    <string>Edit</string>
+                   </property>
+                   <property name="checkable">
+                    <bool>true</bool>
+                   </property>
+                   <property name="checked">
+                    <bool>false</bool>
+                   </property>
+                   <layout class="QGridLayout" name="gridLayout_52">
+                    <item row="0" column="0">
+                     <layout class="QFormLayout" name="formLayout_36">
+                      <item row="0" column="0">
+                       <widget class="QLabel" name="samplingSizeUmLabel_4">
+                        <property name="text">
+                         <string>Sampling Size [um]</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QDoubleSpinBox" name="prjSamplingSizeUmDoubleSpinBox_2"/>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <layout class="QFormLayout" name="formLayout_37">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="heightMmLabel_4">
+                     <property name="text">
+                      <string>Height [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLineEdit" name="prjHeightMmLineEdit_2">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="widthMmLabel_4">
+                     <property name="text">
+                      <string>Width [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="prjWidthMmLineEdit_2">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <layout class="QFormLayout" name="formLayout_38">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="heightPxLabel_4">
+                     <property name="text">
+                      <string>Height [px]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLineEdit" name="prjHeightPxLineEdit_2">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="widthPxLabel_4">
+                     <property name="text">
+                      <string>Width [px]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="prjWidthPxLineEdit_2">
+                     <property name="readOnly">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <layout class="QFormLayout" name="formLayout_32">
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="z0GratingToLensMmLabel_2">
+                     <property name="text">
+                      <string>z0 (grating to lens) [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLineEdit" name="z0GratingToLensMmLineEdit"/>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="z1LensToProjectionPlaneMmLabel_2">
+                     <property name="text">
+                      <string>z1 (lens to projection plane) [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLineEdit" name="z1LensToProjectionPlaneMmLineEdit"/>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="defocusMmLabel_2">
+                     <property name="text">
+                      <string>Defocus [mm]</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="2" column="1">
+                    <widget class="QLineEdit" name="defocusMmLineEdit_2"/>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <layout class="QGridLayout" name="gridLayout_54">
+          <item row="0" column="1">
+           <widget class="QPushButton" name="prjOTFPushButton_2">
+            <property name="text">
+             <string>4. Calcurate OTF</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="prjPlotImageCrsPushButton_2">
+            <property name="text">
+             <string>6. Plot Image CrossSection</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="prjRunPushButton_2">
+            <property name="text">
+             <string>5. Generate Projected Image</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="4">
+           <widget class="QPushButton" name="prjPSFcrsPushButton_2">
+            <property name="text">
+             <string>(optional) Create ZX PSF CrossSection</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <spacer name="horizontalSpacer_14">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="1" column="4">
+           <widget class="QPushButton" name="prjPlotPSFCrspushButton_2">
+            <property name="text">
+             <string>Plot PSF Profile</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QGridLayout" name="gridLayout_55">
+          <item row="0" column="1">
+           <widget class="QGroupBox" name="prjCalcuratedOTFGroupBox_2">
+            <property name="title">
+             <string>Calcurated OTF (depend on NA &amp; Sampling Size)</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_60"/>
+           </widget>
+          </item>
+          <item row="0" column="4">
+           <widget class="QGroupBox" name="prjPSFcrsGroupBox_2">
+            <property name="title">
+             <string>ZX PSF CrossSection</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_58"/>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QGroupBox" name="prjResultProjectedImageGroupBox_2">
+            <property name="title">
+             <string>Projected Image</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_57"/>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QGroupBox" name="prjResultDefocusedImageGroupBox_2">
+            <property name="title">
+             <string>Projected Image (defocused)</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_59"/>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QGroupBox" name="prjLoadedImageGroupBox_2">
+            <property name="title">
+             <string>Loaded Image</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_56"/>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QGroupBox" name="terminalGroupBox">
+      <property name="title">
+       <string>Terminal Output</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_10">
+       <item row="0" column="0">
+        <widget class="QTextEdit" name="terminalTextEdit"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1220</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
