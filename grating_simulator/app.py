@@ -12,6 +12,8 @@ from grating_simulator.ui.widgets import PopupWindow, ZoomableGraphicsView, Text
 from grating_simulator.simulators.grating import Grating_generator
 from grating_simulator.simulators.microscope import Microscope_image_simulator
 from grating_simulator.simulators.projection import Projection_image_simulator
+from grating_simulator.simulators.scheimpflug import Scheimpflug_simulator
+from grating_simulator.simulators.fft_analyzer import FFTImageAnalyzer
 
 import cv2
 import numpy as np
@@ -99,6 +101,26 @@ class MainWindow(QMainWindow):
         self.initialize_microscope_simulator_tab()
 
         # ------------------------------------------------------------------------------------
+        # Tab 3
+        # ------------------------------------------------------------------------------------
+
+        self.ss = Scheimpflug_simulator()
+
+        self.ui.asw_loaded_image_view = ZoomableGraphicsView()
+        self.ui.asw_warped_image_view = ZoomableGraphicsView()
+        self.ui.asw_attenuation_view = ZoomableGraphicsView()
+        self.ui.asw_final_result_view = ZoomableGraphicsView()
+        self.ui.asw_cross_section_view = ZoomableGraphicsView()
+
+        self.ui.prjLoadedImageGroupBox_2.layout().addWidget(self.ui.asw_loaded_image_view)
+        self.ui.prjResultProjectedImageGroupBox_2.layout().addWidget(self.ui.asw_warped_image_view)
+        self.ui.prjCalcuratedOTFGroupBox_2.layout().addWidget(self.ui.asw_attenuation_view)
+        self.ui.prjResultDefocusedImageGroupBox_2.layout().addWidget(self.ui.asw_final_result_view)
+        self.ui.prjPSFcrsGroupBox_2.layout().addWidget(self.ui.asw_cross_section_view)
+
+        self.initialize_scheimpflug_tab()
+
+        # ------------------------------------------------------------------------------------
         # Tab 4
         # ------------------------------------------------------------------------------------
 
@@ -123,6 +145,14 @@ class MainWindow(QMainWindow):
 
         # MicroscopeImageSimulatorTab 초기화
         self.initialize_projection_image_simulator_tab()
+
+        # ------------------------------------------------------------------------------------
+        # Tab 5 (FFT Image Analysis)
+        # ------------------------------------------------------------------------------------
+
+        self.fft_analyzer = FFTImageAnalyzer()
+        self._create_fft_tab_ui()
+        self._connect_fft_signals()
 
         print("Initialization complete.")
 
@@ -1003,3 +1033,267 @@ class MainWindow(QMainWindow):
 
             except Exception as e:
                 print(f"Error loading parameters: {str(e)}")
+
+    '''
+    Tab 3-----------------------------------------------------------------------------------------------------------
+    '''
+    def initialize_scheimpflug_tab(self):
+        self.ui.aswLoadProjectedFlatImagePushButton.clicked.connect(self.asw_load_image)
+        self.ui.aswLoadProjectorParamsPushButton.clicked.connect(self.asw_load_params)
+        self.ui.aswInitializePushButton.clicked.connect(self.asw_initialize)
+
+        self.ui.prjOTFPushButton_2.setText("4. Apply Homography")
+        self.ui.prjRunPushButton_2.setText("5. Compute Brightness")
+        self.ui.prjPlotImageCrsPushButton_2.setText("6. Plot CrossSection")
+        self.ui.prjOTFPushButton_2.clicked.connect(self.asw_apply_homography)
+        self.ui.prjRunPushButton_2.clicked.connect(self.asw_compute_attenuation)
+        self.ui.prjPlotImageCrsPushButton_2.clicked.connect(self.asw_plot_cross_section)
+
+        self.ui.prjPSFcrsPushButton_2.setVisible(False)
+        self.ui.prjPlotPSFCrspushButton_2.setVisible(False)
+
+        self.ui.prjCalcuratedOTFGroupBox_2.setTitle("Brightness Attenuation")
+        self.ui.prjResultProjectedImageGroupBox_2.setTitle("Warped Image")
+        self.ui.prjResultDefocusedImageGroupBox_2.setTitle("Final Result")
+        self.ui.prjPSFcrsGroupBox_2.setTitle("Cross Section")
+
+        self.ui.prjPushButton_save_2.clicked.connect(self.asw_save_parameters)
+        self.ui.prjPushButton_load_2.clicked.connect(self.asw_load_parameters)
+
+    def asw_load_image(self):
+        print("loading image for Scheimpflug...")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Open Projected Flat Image", self.session_dir, "Image Files (*.bmp *.png *.jpg)")
+        if file_path:
+            from grating_simulator.simulators.scheimpflug import stretch_image_to_square
+            self.ss.load_image(file_path)
+            stretch = self.ui.stretchImageToSquareLineEdit.text().strip().lower()
+            if stretch in ('true', '1', 'yes'):
+                self.ss.proj_image_float = stretch_image_to_square(self.ss.proj_image_float)
+                self.ss.proj_image_bmp = self.ss.proj_image_float.astype(np.uint8)
+                self.ss.H, self.ss.W = self.ss.proj_image_float.shape[:2]
+
+            self.ui.prjHeightPxLineEdit_2.setText(str(self.ss.H))
+            self.ui.prjWidthPxLineEdit_2.setText(str(self.ss.W))
+            self.display_image(self.ui.asw_loaded_image_view, self.ss.proj_image_bmp, normalize=False)
+            print("\t-> image loaded.\n")
+
+    def asw_load_params(self):
+        print("loading projection parameters...")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Open Projection Parameters", self.session_dir, "JSON Files (*.json)")
+        if file_path:
+            self.ss.load_proj_image_parameters(file_path)
+            z1_w_defocus = self.ss.z1_mm + self.ss.defocus_z1_mm
+            self.ui.z1WDefocusLensToPlaneMmLineEdit.setText(f"{z1_w_defocus:.2f}")
+            self.ui.z0GratingToLensMmLineEdit.setText(f"{self.ss.z0_mm:.2f}")
+            self.ui.z1LensToProjectionPlaneMmLineEdit.setText(f"{self.ss.z1_mm:.2f}")
+            self.ui.defocusMmLineEdit_2.setText(f"{self.ss.defocus_z1_mm:.2f}")
+
+            if hasattr(self.ss, 'resized_sampling_width_in_um'):
+                self.ui.prjSamplingSizeUmDoubleSpinBox_2.setValue(self.ss.resized_sampling_width_in_um)
+                pixel_mm = self.ss.resized_sampling_width_in_um / 1000
+                self.ui.prjHeightMmLineEdit_2.setText(f"{self.ss.H * pixel_mm:.2f}")
+                self.ui.prjWidthMmLineEdit_2.setText(f"{self.ss.W * pixel_mm:.2f}")
+            print("\t-> projection parameters loaded.\n")
+
+    def asw_initialize(self):
+        print("initializing Scheimpflug simulator...")
+        self.ss.x_rot_deg = self.ui.xProjectionAngleDegDoubleSpinBox.value()
+        self.ss.y_rot_deg = self.ui.yProjectionAngleDegDoubleSpinBox.value()
+        self.ss.header_prefix = self.ui.prjHeaderPrefixLineEdit_2.text()
+
+        if self.ui.prjEdgeRemoverGroupBox_2.isChecked():
+            self.ss.pad = int(self.ui.prjEdgeRemoverFactorDoubleSpinBox_2.value())
+        else:
+            self.ss.pad = 0
+
+        self.ss.initialize_optics()
+        self.ss.check_simulation_condition()
+
+        mag = self.ss.magnification
+        object_x_angle = -np.rad2deg(np.arctan(np.tan(np.deg2rad(self.ss.x_rot_deg)) / mag))
+        object_y_angle = -np.rad2deg(np.arctan(np.tan(np.deg2rad(self.ss.y_rot_deg)) / mag))
+        self.ui.xGratingTiltAngleDegLineEdit.setText(f"{object_x_angle:.4f}")
+        self.ui.yGratingTiltAngleDegLineEdit.setText(f"{object_y_angle:.4f}")
+        print("\t-> Scheimpflug simulator initialized.\n")
+
+    def asw_apply_homography(self):
+        print("applying homography...")
+        self.ss.apply_homography()
+        self.display_image(self.ui.asw_warped_image_view, self.ss.warped_image, normalize=True)
+        print("\t-> homography applied.\n")
+
+    def asw_compute_attenuation(self):
+        print("computing brightness attenuation...")
+        print("** This may take a while (GPU computation)... **")
+        QApplication.processEvents()
+
+        self.ss.compute_pixel_to_camera_distance_and_scale_gpu()
+        self.ss.final_result = self.ss.inv_sqr_raw * self.ss.warped_image
+
+        attenuation_display = (self.ss.inv_sqr_raw / np.max(self.ss.inv_sqr_raw) * 255).astype(np.uint8)
+        self.display_image(self.ui.asw_attenuation_view, attenuation_display, normalize=False)
+        self.display_image(self.ui.asw_final_result_view, self.ss.final_result, normalize=True)
+
+        if self.ui.prjSaveResultCheckBox_2.isChecked():
+            self.ss.save_image(output_dir=self.session_dir)
+            json_path = os.path.join(self.session_dir, self.ss.header_prefix + 'Scheimpflug_params.json')
+            self.ss.save_parameters_json_dict(json_path)
+        print("\t-> brightness attenuation computed.\n")
+
+    def asw_plot_cross_section(self):
+        fig = self.ss.imshow_result()
+
+        save_path = os.path.join(self.session_dir, self.ss.header_prefix + 'scheimpflug_cross_section.png')
+        fig.savefig(save_path, dpi=150)
+        print(f"Cross-section plot saved to {save_path}")
+
+        self.ui.pop_ZGV = ZoomableGraphicsView()
+        self.popup_window = PopupWindow()
+        self.popup_window.layout.addWidget(self.ui.pop_ZGV)
+        self.popup_window.display_matplotlib_fig(self.ui.pop_ZGV, fig)
+        self.popup_window.show()
+        plt.close(fig)
+
+    def asw_save_parameters(self):
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Parameters", self.session_dir, "JSON Files (*.json);;All Files (*)")
+        if file_path:
+            self.ss.save_parameters_json_dict(file_path)
+
+    def asw_load_parameters(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Load Parameters", self.session_dir, "JSON Files (*.json);;All Files (*)")
+        if file_path:
+            self.ss.update_parameters_json_dict(file_path)
+            self.ui.xProjectionAngleDegDoubleSpinBox.setValue(self.ss.x_rot_deg)
+            self.ui.yProjectionAngleDegDoubleSpinBox.setValue(self.ss.y_rot_deg)
+            if hasattr(self.ss, 'pad'):
+                self.ui.prjEdgeRemoverFactorDoubleSpinBox_2.setValue(float(self.ss.pad))
+            print(f"Parameters loaded from {file_path}")
+
+    '''
+    Tab 5 (FFT Image Analysis)------------------------------------------------------------------
+    '''
+    def _create_fft_tab_ui(self):
+        from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
+            QPushButton, QGroupBox, QGridLayout, QFormLayout,
+            QLineEdit, QDoubleSpinBox, QSizePolicy, QSpacerItem)
+
+        tab = QWidget()
+        tab.setObjectName("tab_fft")
+        main_layout = QVBoxLayout(tab)
+
+        btn_layout = QHBoxLayout()
+        self.ui.fftLoadImageBtn = QPushButton("1. Load Image (*.bmp)")
+        self.ui.fftAutoDetectBtn = QPushButton("2. Auto-Detect Angle")
+        self.ui.fftAnalyzeBtn = QPushButton("3. Analyze && Plot")
+        self.ui.fftSaveFigBtn = QPushButton("4. Save Figure")
+        btn_layout.addWidget(self.ui.fftLoadImageBtn)
+        btn_layout.addWidget(self.ui.fftAutoDetectBtn)
+        btn_layout.addWidget(self.ui.fftAnalyzeBtn)
+        btn_layout.addWidget(self.ui.fftSaveFigBtn)
+        btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        main_layout.addLayout(btn_layout)
+
+        params_group = QGroupBox("Parameters")
+        params_layout = QFormLayout()
+
+        self.ui.fftDetectedAngleLineEdit = QLineEdit()
+        self.ui.fftDetectedAngleLineEdit.setReadOnly(True)
+        self.ui.fftDetectedAngleLineEdit.setPlaceholderText("Click 'Auto-Detect'")
+        params_layout.addRow("Detected angle [deg]:", self.ui.fftDetectedAngleLineEdit)
+
+        self.ui.fftManualAngleSpinBox = QDoubleSpinBox()
+        self.ui.fftManualAngleSpinBox.setRange(-180.0, 180.0)
+        self.ui.fftManualAngleSpinBox.setDecimals(2)
+        self.ui.fftManualAngleSpinBox.setValue(0.0)
+        params_layout.addRow("Manual angle [deg]:", self.ui.fftManualAngleSpinBox)
+
+        self.ui.fftPixelSizeSpinBox = QDoubleSpinBox()
+        self.ui.fftPixelSizeSpinBox.setRange(0.01, 10000.0)
+        self.ui.fftPixelSizeSpinBox.setDecimals(4)
+        self.ui.fftPixelSizeSpinBox.setValue(20.0)
+        params_layout.addRow("Pixel size [um]:", self.ui.fftPixelSizeSpinBox)
+
+        self.ui.fftImageSizeLineEdit = QLineEdit()
+        self.ui.fftImageSizeLineEdit.setReadOnly(True)
+        params_layout.addRow("Image size [H x W px]:", self.ui.fftImageSizeLineEdit)
+
+        params_group.setLayout(params_layout)
+        main_layout.addWidget(params_group)
+
+        img_layout = QGridLayout()
+        orig_group = QGroupBox("Original Image")
+        orig_group_layout = QGridLayout(orig_group)
+        self.ui.fft_original_view = ZoomableGraphicsView()
+        orig_group_layout.addWidget(self.ui.fft_original_view)
+
+        rotated_group = QGroupBox("Rotated Image")
+        rotated_group_layout = QGridLayout(rotated_group)
+        self.ui.fft_rotated_view = ZoomableGraphicsView()
+        rotated_group_layout.addWidget(self.ui.fft_rotated_view)
+
+        img_layout.addWidget(orig_group, 0, 0)
+        img_layout.addWidget(rotated_group, 0, 1)
+        main_layout.addLayout(img_layout)
+
+        self.ui.tabWidget.addTab(tab, "FFT Image Analysis")
+
+    def _connect_fft_signals(self):
+        self.ui.fftLoadImageBtn.clicked.connect(self.fft_load_image)
+        self.ui.fftAutoDetectBtn.clicked.connect(self.fft_auto_detect)
+        self.ui.fftAnalyzeBtn.clicked.connect(self.fft_analyze)
+        self.ui.fftSaveFigBtn.clicked.connect(self.fft_save_figure)
+
+    def fft_load_image(self):
+        print("loading image for FFT analysis...")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Open Image", self.session_dir, "Image Files (*.bmp *.png *.jpg)")
+        if file_path:
+            self.fft_analyzer.load_image(file_path)
+            self.ui.fftImageSizeLineEdit.setText(f"{self.fft_analyzer.H} x {self.fft_analyzer.W}")
+            self.display_image(self.ui.fft_original_view, self.fft_analyzer.img, normalize=False)
+            print(f"\t-> image loaded ({self.fft_analyzer.H} x {self.fft_analyzer.W}).\n")
+
+    def fft_auto_detect(self):
+        if self.fft_analyzer.img is None:
+            print("Error: Load an image first.")
+            return
+        print("detecting sine wave direction...")
+        angle = self.fft_analyzer.analyze_sine_direction()
+        self.ui.fftDetectedAngleLineEdit.setText(f"{angle:.3f}")
+        self.ui.fftDetectedAngleLineEdit.setStyleSheet("background-color: #90EE90;")
+        self.ui.fftManualAngleSpinBox.setValue(angle)
+        print(f"\t-> detected angle: {angle:.3f} deg\n")
+
+    def fft_analyze(self):
+        if self.fft_analyzer.img is None:
+            print("Error: Load an image first.")
+            return
+
+        manual_angle = self.ui.fftManualAngleSpinBox.value()
+        pixel_size = self.ui.fftPixelSizeSpinBox.value()
+
+        print(f"analyzing at angle {manual_angle:.3f} deg...")
+        self.fft_analyzer.rotate_and_extract(angle_deg=manual_angle)
+
+        self.display_image(self.ui.fft_rotated_view, self.fft_analyzer.rotated_img, normalize=False)
+
+        self._fft_fig = self.fft_analyzer.plot_analysis(pixel_size_um=pixel_size)
+
+        self.ui.pop_ZGV = ZoomableGraphicsView()
+        self.popup_window = PopupWindow()
+        self.popup_window.layout.addWidget(self.ui.pop_ZGV)
+        self.popup_window.display_matplotlib_fig(self.ui.pop_ZGV, self._fft_fig)
+        self.popup_window.show()
+        print("\t-> analysis complete.\n")
+
+    def fft_save_figure(self):
+        if not hasattr(self, '_fft_fig') or self._fft_fig is None:
+            print("Error: Run analysis first.")
+            return
+        save_path = os.path.join(self.session_dir, 'fft_analysis.png')
+        self._fft_fig.savefig(save_path, dpi=150)
+        print(f"FFT analysis figure saved to {save_path}")

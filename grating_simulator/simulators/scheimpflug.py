@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -131,6 +130,7 @@ class Scheimpflug_simulator():
         self.x_rot_deg = 25
         self.y_rot_deg = 0
         self.pad = 100
+        self.header_prefix = ''
 
 
 
@@ -294,7 +294,7 @@ class Scheimpflug_simulator():
         ax_y.set_xlim(0,255)
 
         plt.tight_layout()
-        plt.show()
+        return fig
 
 
     def run(self, bmp_path, json_path, parameters=None):
@@ -311,47 +311,42 @@ class Scheimpflug_simulator():
         self.imshow_result()
 
 
-    def compute_pixel_to_camera_distance_and_scale_gpu(self):
-        """
-        Compute the distance from each pixel to the camera for both flat and tilted images using d0 and d1,
-        and calculate the scale for each pixel using GPU.
-        
-        Returns:
-            flat_distance_map_d0 (ndarray): Distance map for the flat image using d0.
-            tilted_distance_map_d0 (ndarray): Distance map for the tilted image using d0.
-            flat_distance_map_d1 (ndarray): Distance map for the flat image using d1.
-            tilted_distance_map_d1 (ndarray): Distance map for the tilted image using d1.
-            scale_map (ndarray): Scale map for each pixel.
-        """
-        # Initialize distance maps on GPU
-        flat_distance_map_d0 = torch.zeros((self.H, self.W), device='cuda')
-        tilted_distance_map_d0 = torch.zeros((self.H, self.W), device='cuda')
-        flat_distance_map_d1 = torch.zeros((self.H, self.W), device='cuda')
-        tilted_distance_map_d1 = torch.zeros((self.H, self.W), device='cuda')
-        scale_map = torch.zeros((self.H, self.W), device='cuda')
+    def compute_pixel_to_camera_distance_and_scale(self):
+        """Thin wrapper: picks GPU (torch) or CPU (numpy) backend."""
+        try:
+            import torch
+            self._compute_distance_and_scale_gpu(torch)
+        except ImportError:
+            print("torch not available, using numpy CPU fallback.")
+            self._compute_distance_and_scale_cpu()
 
-        # Convert intrinsic matrix to torch tensor and move to GPU
-        K_inv = torch.tensor(np.linalg.inv(self.K), device='cuda', dtype=torch.float32)
+    # keep old name as alias
+    compute_pixel_to_camera_distance_and_scale_gpu = compute_pixel_to_camera_distance_and_scale
 
-        # Create a grid of pixel coordinates
-        u, v = torch.meshgrid(torch.arange(self.W, device='cuda'), torch.arange(self.H, device='cuda'))
+    def _compute_distance_and_scale_gpu(self, torch):
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(f"Computing distance maps on {device}...")
+
+        K_inv = torch.tensor(np.linalg.inv(self.K), device=device, dtype=torch.float32)
+
+        u, v = torch.meshgrid(torch.arange(self.W, device=device), torch.arange(self.H, device=device))
         u = u.t().reshape(-1)
         v = v.t().reshape(-1)
 
-        # Calculate distances for flat image using d0
+        # Flat image distances (d0)
         d = torch.stack([u, v, torch.ones_like(u)], dim=1).float()
         d = torch.matmul(d, K_inv.t())
         s_d0 = self.d0 / d[:, 2]
         X1_d0 = d * s_d0.unsqueeze(1)
         flat_distance_map_d0 = torch.norm(X1_d0, dim=1).reshape(self.H, self.W)
 
-        # Calculate distances for flat image using d1
+        # Flat image distances (d1)
         s_d1 = self.di / d[:, 2]
         X1_d1 = d * s_d1.unsqueeze(1)
         flat_distance_map_d1 = torch.flip(torch.norm(X1_d1, dim=1).reshape(self.H, self.W), dims=[0])
 
-        # Calculate distances for tilted image using d0
-        homographyMTX_inv = torch.tensor(np.linalg.inv(self.homographyMTX), device='cuda', dtype=torch.float32)
+        # Tilted image distances (d0)
+        homographyMTX_inv = torch.tensor(np.linalg.inv(self.homographyMTX), device=device, dtype=torch.float32)
         p_est_h = torch.matmul(torch.stack([u, v, torch.ones_like(u)], dim=1).float(), homographyMTX_inv.t())
         p_est = p_est_h[:, :2] / p_est_h[:, 2].unsqueeze(1)
 
@@ -361,87 +356,147 @@ class Scheimpflug_simulator():
         X1_d0 = d * s_d0.unsqueeze(1)
         tilted_distance_map_d0 = torch.norm(X1_d0, dim=1).reshape(self.H, self.W)
 
-        # Calculate distances for tilted image using d1
+        # Tilted image distances (d1)
         s_d1 = self.di / d[:, 2]
         X1_d1 = d * s_d1.unsqueeze(1)
         tilted_distance_map_d1 = torch.flip(torch.norm(X1_d1, dim=1).reshape(self.H, self.W), dims=[0])
 
-        # Calculate scale map
-        flat_scale_map = flat_distance_map_d1 / flat_distance_map_d0
+        # Scale & attenuation
         tilted_scale_map = tilted_distance_map_d1 / tilted_distance_map_d0
-        
-        # Calculate f# map
-        flat_f_num_map = self.pupil_diameter_mm/ flat_distance_map_d0
-        tilted_f_num_map = self.pupil_diameter_mm/ tilted_distance_map_d0
-        
-        # Calculate brightness attenuation as a function of distance (scale) by point.        
-        inv_sqr_raw = 1/tilted_scale_map**2
+        inv_sqr_raw = 1 / tilted_scale_map**2
         inv_sqr_raw /= torch.max(inv_sqr_raw)
 
-        # Calculate brightness attenuation as a function of cos**4 raw
-        d_norm = d / torch.norm(d, dim=1, keepdim=True)  # Normalize direction vectors
-        # Calculate cos(theta) for each pixel
-        cos_theta = d_norm[:, 2]  # z-component of the normalized direction vector
-        attenuation_map = cos_theta**4
-        attenuation_map = attenuation_map.reshape(self.H, self.W)
-        
-        # results
+        d_norm = d / torch.norm(d, dim=1, keepdim=True)
+        cos_theta = d_norm[:, 2]
+        attenuation_map = (cos_theta**4).reshape(self.H, self.W)
+
         self.inv_sqr_raw = inv_sqr_raw.cpu().numpy()
         self.attenuation_map = attenuation_map.cpu().numpy()
 
+    def _compute_distance_and_scale_cpu(self):
+        print("Computing distance maps on CPU (numpy)...")
+
+        K_inv = np.linalg.inv(self.K).astype(np.float32)
+
+        u_arr = np.arange(self.W, dtype=np.float32)
+        v_arr = np.arange(self.H, dtype=np.float32)
+        uu, vv = np.meshgrid(u_arr, v_arr)
+        u = uu.reshape(-1)
+        v = vv.reshape(-1)
+
+        # Flat image distances (d0)
+        coords = np.stack([u, v, np.ones_like(u)], axis=1)
+        d = coords @ K_inv.T
+        s_d0 = self.d0 / d[:, 2]
+        X1_d0 = d * s_d0[:, np.newaxis]
+        flat_distance_map_d0 = np.linalg.norm(X1_d0, axis=1).reshape(self.H, self.W)
+
+        # Flat image distances (d1)
+        s_d1 = self.di / d[:, 2]
+        X1_d1 = d * s_d1[:, np.newaxis]
+        flat_distance_map_d1 = np.flip(np.linalg.norm(X1_d1, axis=1).reshape(self.H, self.W), axis=0)
+
+        # Tilted image distances (d0)
+        homographyMTX_inv = np.linalg.inv(self.homographyMTX).astype(np.float32)
+        p_est_h = coords @ homographyMTX_inv.T
+        p_est = p_est_h[:, :2] / p_est_h[:, 2:3]
+
+        d = np.stack([p_est[:, 0], p_est[:, 1], np.ones_like(p_est[:, 0])], axis=1)
+        d = d @ K_inv.T
+        s_d0 = self.d0 / d[:, 2]
+        X1_d0 = d * s_d0[:, np.newaxis]
+        tilted_distance_map_d0 = np.linalg.norm(X1_d0, axis=1).reshape(self.H, self.W)
+
+        # Tilted image distances (d1)
+        s_d1 = self.di / d[:, 2]
+        X1_d1 = d * s_d1[:, np.newaxis]
+        tilted_distance_map_d1 = np.flip(np.linalg.norm(X1_d1, axis=1).reshape(self.H, self.W), axis=0)
+
+        # Scale & attenuation
+        tilted_scale_map = tilted_distance_map_d1 / tilted_distance_map_d0
+        inv_sqr_raw = 1 / tilted_scale_map**2
+        inv_sqr_raw /= np.max(inv_sqr_raw)
+
+        d_norm = d / np.linalg.norm(d, axis=1, keepdims=True)
+        cos_theta = d_norm[:, 2]
+        attenuation_map = (cos_theta**4).reshape(self.H, self.W)
+
+        self.inv_sqr_raw = inv_sqr_raw
+        self.attenuation_map = attenuation_map
+
+    def save_image(self, output_dir=None):
+        import os
+        prefix = self.header_prefix
+
+        def _path(name):
+            return os.path.join(output_dir, prefix + name) if output_dir else prefix + name
+
+        if hasattr(self, 'warped_image') and self.warped_image is not None:
+            cv2.imwrite(_path('warped_image.bmp'), self.warped_image.astype(np.uint8))
+        if hasattr(self, 'final_result') and self.final_result is not None:
+            cv2.imwrite(_path('scheimpflug_final_result.bmp'), self.final_result.astype(np.uint8))
+        print(f"Scheimpflug images saved to {output_dir or '.'}")
+
+    def save_parameters_json_dict(self, json_path):
+        params = {
+            'x_rot_deg': self.x_rot_deg,
+            'y_rot_deg': self.y_rot_deg,
+            'pad': self.pad,
+        }
+        if hasattr(self, 'z0_mm'):
+            params['z0_mm'] = self.z0_mm
+            params['z1_mm'] = self.z1_mm
+            params['defocus_z1_mm'] = self.defocus_z1_mm
+            params['resized_sampling_width_in_um'] = self.resized_sampling_width_in_um
+            params['pupil_diameter_mm'] = self.pupil_diameter_mm
+        with open(json_path, 'w') as f:
+            json.dump(params, f, indent=4)
+        print(f"Parameters saved to {json_path}")
 
 
 
 
-# img = create_mask_checkerboard(5, 5, square_size_px=500) # 25MP sensor
-# cv2.imwrite("test_checkerboard.bmp", img)
-target_img_path = './20M20um/27um/defocused_projected_image.bmp'
-proj_json_path = './20M20um/27um/Projection_params.json'
-new_img_path = target_img_path.replace('.bmp','_squre.bmp')
-img = cv2.imread(target_img_path, cv2.IMREAD_GRAYSCALE)
-img = stretch_image_to_square(img)
-img = rotate_image(img, 0)
-cv2.imwrite(new_img_path, img)
+# --- Utility functions migrated from bin/20M20um/ standalone scripts ---
 
-ss = Scheimpflug_simulator()
-ss.x_rot_deg = 2.576
-ss.y_rot_deg = 0
-ss.pad = 500
-ss.run(bmp_path=new_img_path, json_path=proj_json_path)
-final_output = ss.inv_sqr_raw*ss.attenuation_map*ss.warped_image
-final_output = ss.inv_sqr_raw*ss.warped_image
-
-fig, ax = plt.subplots(1,3, sharex=True, sharey=True)
-ax[0].imshow(ss.inv_sqr_raw, vmin=0, vmax=1, cmap = 'jet')
-ax[1].imshow(ss.attenuation_map, vmin=0, vmax=1, cmap = 'jet')
-ax[2].imshow(final_output, cmap='gray')
-
-'''
-        return (flat_distance_map_d0.cpu().numpy(), tilted_distance_map_d0.cpu().numpy(),
-                flat_distance_map_d1.cpu().numpy(), tilted_distance_map_d1.cpu().numpy(),
-                scale_map.cpu().numpy())
-'''
-cv2.imwrite(new_img_path.replace('.bmp','_warp.bmp'), ss.warped_image.astype(np.uint8))
-cv2.imwrite(new_img_path.replace('.bmp','_warp_var_brightness.bmp'), final_output)
+def convert_angles(angle_value_deg, magnification, mode='to_projection'):
+    angle_rad = np.radians(angle_value_deg)
+    if mode == 'to_projection':
+        return np.degrees(np.arctan(np.tan(angle_rad) / magnification))
+    elif mode == 'to_scheimpflug':
+        return np.degrees(np.arctan(magnification * np.tan(angle_rad)))
+    else:
+        raise ValueError("mode must be 'to_projection' or 'to_scheimpflug'")
 
 
 
+def add_poisson_noise(image):
+    return np.random.poisson(image).astype(np.uint8)
 
+def add_gaussian_noise(image, mean=0, std=1):
+    gaussian_noise = np.random.normal(mean, std, image.shape)
+    return np.clip(image + gaussian_noise, 0, 255).astype(np.uint8)
 
+def add_speckle_noise(image, std_factor=0.1):
+    noise = np.random.randn(*image.shape) * std_factor
+    return np.clip(image + image * noise, 0, 255).astype(np.uint8)
 
+def estimate_sine_wave_params(image):
+    hist, bins = np.histogram(image.flatten(), 256, [0, 256])
+    cdf = hist.cumsum()
+    min_val = np.min(bins[np.where(cdf > 0.1 * cdf[-1])])
+    max_val = np.max(bins[np.where(cdf < 0.997 * cdf[-1])])
+    return min_val, max_val
 
-# 1) R_tilt 검증
-is_rot, ort_err, det_err = is_rotation_matrix(ss.R_tilt)
-print(f"Rotation matrix? {is_rot}, orthogonality error={ort_err:.2e}, det error={det_err:.2e}")
+def normalize_sim_image(sim_img, min_val, max_val):
+    sim_img_normalized = (sim_img - np.min(sim_img)) / (np.max(sim_img) - np.min(sim_img))
+    sim_img_normalized = sim_img_normalized * (max_val - min_val) + min_val
+    return sim_img_normalized
 
-rmse, max_err = evaluate_reprojection_error(
-    K=ss.K,
-    Kh=ss.K_h,
-    R_tilt=ss.R_tilt,
-    H=ss.homographyMTX,
-    d0=ss.d0,
-    image_size=(ss.W, ss.H),
-    num_samples=9
-)
-print(f"RMSE: {rmse:.3f} px, Max Error: {max_err:.3f} px")
+def find_crop_region(sim_img, exp_img):
+    result = cv2.matchTemplate(sim_img, exp_img, cv2.TM_CCOEFF_NORMED)
+    _, max_val, _, max_loc = cv2.minMaxLoc(result)
+    start_x, start_y = max_loc
+    end_x = start_x + exp_img.shape[1]
+    end_y = start_y + exp_img.shape[0]
+    return start_x, start_y, end_x, end_y, max_val
 
