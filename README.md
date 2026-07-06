@@ -4,13 +4,16 @@
 
 ## 주요 기능
 
-| 탭 | 기능 | 설명 |
+| 탭 | 기능 | 상세 문서 |
 |---|---|---|
-| Tab 1 | [격자 생성기](docs/tab1_grating_generator.md) | 이진 격자 마스크 생성 (톱니파 기반) |
-| Tab 2 | [현미경 시뮬레이터](docs/tab2_microscope_simulator.md) | OTF 기반 현미경 이미징 시뮬레이션 |
-| Tab 3 | [Scheimpflug 시뮬레이터](docs/tab3_scheimpflug_simulator.md) | Homography + 밝기 감쇠 보정 |
-| Tab 4 | [프로젝션 시뮬레이터](docs/tab4_projection_simulator.md) | 프로젝션 OTF + defocus 시뮬레이션 |
-| Tab 5 | [FFT 이미지 분석](docs/tab5_fft_analyzer.md) | 사인파 방향 검출 + 주기 측정 |
+| Tab 1 | **격자 생성기** — 이진 격자 마스크 생성 (톱니파 기반, morphological rounding) | [tab1_grating_generator.md](docs/tab1_grating_generator.md) |
+| Tab 2 | **현미경 시뮬레이터** — OTF 기반 비간섭 이미징 시뮬레이션 (다색 지원) | [tab2_microscope_simulator.md](docs/tab2_microscope_simulator.md) |
+| Tab 3 | **Scheimpflug 시뮬레이터** — Homography 변환 + 역제곱/cos⁴ 밝기 감쇠 보정 | [tab3_scheimpflug_simulator.md](docs/tab3_scheimpflug_simulator.md) |
+| Tab 4 | **프로젝션 시뮬레이터** — 프로젝션 OTF + 근축 탈초점 + through-focus PSF 전파 | [tab4_projection_simulator.md](docs/tab4_projection_simulator.md) |
+| Tab 5 | **FFT 이미지 분석** — 2D FFT 방향 검출 + 1D FFT 주기 측정 (parabolic fitting) | [tab5_fft_analyzer.md](docs/tab5_fft_analyzer.md) |
+
+전체 아키텍처: [docs/architecture.md](docs/architecture.md)
+커스텀 위젯: [docs/widgets.md](docs/widgets.md)
 
 ## 설치
 
@@ -25,7 +28,7 @@
 install.bat
 ```
 
-가상환경 생성, 의존성 설치, PyTorch 설치 옵션(CUDA/CPU/건너뛰기)을 안내합니다.
+가상환경 생성 → 의존성 설치 → PyTorch 설치 옵션 (CUDA 12.8 / CPU-only / 건너뛰기)을 안내합니다.
 
 ### 수동 설치
 
@@ -54,14 +57,20 @@ python run.py
 ## 의존성
 
 ### 필수
-- PySide6 — GUI 프레임워크
-- numpy — 수치 계산
-- opencv-python — 이미지 처리
-- matplotlib — 시각화
-- tqdm — 진행률 표시
+
+| 패키지 | 용도 |
+|---|---|
+| PySide6 | Qt6 GUI 프레임워크 |
+| numpy | 수치 계산, FFT |
+| opencv-python | 이미지 I/O, warpPerspective, warpAffine |
+| matplotlib | 시각화, cross-section plot |
+| tqdm | 진행률 표시 |
 
 ### 선택
-- torch — GPU 가속 (Scheimpflug 거리/감쇠 맵 계산). 미설치 시 numpy로 자동 fallback
+
+| 패키지 | 용도 |
+|---|---|
+| torch | GPU 가속 (Scheimpflug 거리/감쇠 맵). 미설치 시 numpy로 자동 fallback |
 
 ## 프로젝트 구조
 
@@ -74,35 +83,53 @@ python run.py
 ├── grating_simulator/        # 메인 패키지
 │   ├── app.py                # MainWindow (GUI 로직)
 │   ├── ui/                   # UI 정의 + 커스텀 위젯
-│   └── simulators/           # 시뮬레이션 엔진
+│   │   ├── main_window.ui    # Qt Designer 원본
+│   │   ├── main_window_ui.py # 자동생성 코드 (수정 금지)
+│   │   └── widgets.py        # ZoomableGraphicsView, PopupWindow, TextRedirector
+│   └── simulators/           # 시뮬레이션 엔진 (GUI 독립)
 │       ├── grating.py        # 격자 패턴 생성
 │       ├── microscope.py     # 현미경 OTF 시뮬레이션
-│       ├── projection.py     # 프로젝션 OTF 시뮬레이션
-│       ├── scheimpflug.py    # Scheimpflug 보정
-│       └── fft_analyzer.py   # FFT 이미지 분석
+│       ├── projection.py     # 프로젝션 OTF + defocus 시뮬레이션
+│       ├── scheimpflug.py    # Scheimpflug homography + 밝기 감쇠
+│       └── fft_analyzer.py   # FFT 방향/주기 분석
 │
-├── docs/                     # 문서
-│   ├── architecture.md       # 아키텍처 개요
-│   ├── tab1~tab5_*.md        # 탭별 상세 문서
-│
+├── docs/                     # 문서 (OpenCV 스타일 API 레퍼런스)
 ├── bin/                      # 레거시 스크립트 (참고용)
-└── output/                   # 세션별 결과 출력
+└── output/                   # 세션별 결과 출력 (YYYYMMDD_HHMMSS/)
 ```
-
-자세한 아키텍처 설명은 [docs/architecture.md](docs/architecture.md)를 참조하세요.
 
 ## 데이터 흐름
 
 ```
-[Tab 1] 격자 생성 → BMP
-            ↓
-[Tab 2] 현미경 시뮬레이션     [Tab 4] 프로젝션 시뮬레이션
-                                      ↓
-                              [Tab 3] Scheimpflug 보정
+[Tab 1] 격자 생성 → BMP + JSON
+            │
+            ├──→ [Tab 2] 현미경 시뮬레이션
+            │
+            └──→ [Tab 4] 프로젝션 시뮬레이션 → BMP + JSON
+                              │
+                              └──→ [Tab 3] Scheimpflug 보정
 
 [Tab 5] FFT 분석 ← 임의 이미지 (독립)
 ```
 
+## CLI 사용
+
+각 시뮬레이터는 GUI 없이 CLI에서 독립 실행할 수 있습니다:
+
+```python
+from grating_simulator.simulators.grating import Grating_generator
+from grating_simulator.simulators.projection import Projection_image_simulator
+
+# 격자 생성
+gg = Grating_generator()
+gg.run(save=True)
+
+# 프로젝션 시뮬레이션
+pis = Projection_image_simulator()
+pis.pupil_diameter_mm = 3.0
+pis.run('grating.bmp', 'grating_parameters.json')
+```
+
 ## 출력
 
-모든 결과는 `output/YYYYMMDD_HHMMSS/` 형식의 세션 폴더에 저장됩니다.
+모든 결과는 `output/YYYYMMDD_HHMMSS/` 형식의 세션 폴더에 자동 저장됩니다. 실행 간 결과가 덮어씌워지지 않습니다.
