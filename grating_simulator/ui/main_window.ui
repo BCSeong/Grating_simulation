@@ -43,7 +43,7 @@
           <item>
            <widget class="QPushButton" name="pushButton_5">
             <property name="text">
-             <string>Check the parameter guide</string>
+             <string>Review the parameter guide</string>
             </property>
            </widget>
           </item>
@@ -907,11 +907,6 @@
          </layout>
         </item>
        </layout>
-      </widget>
-      <widget class="QWidget" name="tab">
-       <attribute name="title">
-        <string>Image Stitching Wizard</string>
-       </attribute>
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">

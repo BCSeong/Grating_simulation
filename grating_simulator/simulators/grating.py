@@ -213,10 +213,16 @@ class Grating_generator():
         plt.grid(False)
         plt.show()
 
-    def save_grating(self):
-        cv2.imwrite(f'{self.gt_id}grating_close({self.mask_rounding}).bmp',self.buffer*255)
-        cv2.imwrite(f'{self.gt_id}grating_close({self.mask_rounding})_rev.bmp',~self.buffer*255)
-        print(f"Grating saved to {self.gt_id}grating_close({self.mask_rounding}).bmp")
+    def save_grating(self, output_dir=None):
+        import os
+        filename = f'{self.gt_id}grating_close({self.mask_rounding}).bmp'
+        filename_rev = f'{self.gt_id}grating_close({self.mask_rounding})_rev.bmp'
+        if output_dir:
+            filename = os.path.join(output_dir, filename)
+            filename_rev = os.path.join(output_dir, filename_rev)
+        cv2.imwrite(filename, self.buffer*255)
+        cv2.imwrite(filename_rev, ~self.buffer*255)
+        print(f"Grating saved to {filename}")
     
     def invert_grating(self):
         self.mask_ori = ~self.mask_ori

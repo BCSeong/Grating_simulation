@@ -715,9 +715,6 @@ class Ui_MainWindow(object):
         self.gridLayout_16.addLayout(self.horizontalLayout_11, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.microscopeImageSimulatorTab, "")
-        self.tab = QWidget()
-        self.tab.setObjectName(u"tab")
-        self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
         self.verticalLayout_3 = QVBoxLayout(self.tab_2)
@@ -1728,7 +1725,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Grating Simulrator ver 1.0.0", None))
-        self.pushButton_5.setText(QCoreApplication.translate("MainWindow", u"Check the parameter guide", None))
+        self.pushButton_5.setText(QCoreApplication.translate("MainWindow", u"Review the parameter guide", None))
         self.pushButton_3.setText(QCoreApplication.translate("MainWindow", u"Initialize", None))
         self.pushButton_4.setText(QCoreApplication.translate("MainWindow", u"Run", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"Parameters", None))
@@ -1795,7 +1792,6 @@ class Ui_MainWindow(object):
         self.loadGratingPushButton.setText(QCoreApplication.translate("MainWindow", u"1. Load Grating image (*.bmp)", None))
         self.loadGratingParamsPushButton.setText(QCoreApplication.translate("MainWindow", u"2. Load Grating Parameter (*.json)", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.microscopeImageSimulatorTab), QCoreApplication.translate("MainWindow", u"Microscope Image Simulator", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Image Stitching Wizard", None))
         self.prjLoadGratingPushButton.setText(QCoreApplication.translate("MainWindow", u"1. Load Grating image (*.bmp)", None))
         self.prjLoadGratingParamsPushButton.setText(QCoreApplication.translate("MainWindow", u"2. Load Grating Parameter (*.json)", None))
         self.prjInitializePushButton.setText(QCoreApplication.translate("MainWindow", u"3. Initialize", None))

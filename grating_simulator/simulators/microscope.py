@@ -101,11 +101,12 @@ class Microscope_image_simulator():
         imaged_gt = np.abs(myFFT(myiFFT(self.mask_bmp.astype(np.float32))*self.eff_OTF))
         self.imaged_gt_uint = (imaged_gt / np.max(imaged_gt) * 255).astype(np.uint8)
 
-    def save_image(self, path=None):
+    def save_image(self, path=None, output_dir=None):
         if path is None:
             path = self.microscope_id + 'microscope_image.bmp'
-        else:
-            pass
+        if output_dir:
+            import os
+            path = os.path.join(output_dir, os.path.basename(path))
         cv2.imwrite(path, self.imaged_gt_uint)
         print(f"Microscope image saved to {path}")
 

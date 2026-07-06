@@ -400,38 +400,82 @@ class Projection_image_simulator():
         self.resized_result_uint = resized_result            
         self.resized_defocused_result_uint = resized_defocused_result
 
-    def save_image(self, path=None):
+    def save_image(self, path=None, output_dir=None):
         if path is None:
             path = self.header_prefix + 'projected_image.bmp'
-        else:
-            pass
+        if output_dir:
+            import os
+            path = os.path.join(output_dir, os.path.basename(path))
         cv2.imwrite(f'{path}', self.resized_result_uint)
-        print(f"Resized result image saved to {path}")        
+        print(f"Resized result image saved to {path}")
         cv2.imwrite(f'{path.replace("projected_image.bmp", "defocused_projected_image.bmp")}', self.resized_defocused_result_uint)
         print(f"Resized defocused result image saved to {path.replace('projected_image.bmp', 'defocused_projected_image.bmp')}")
-        
-        # if self.debug_mode:
-        cv2.imwrite(f'{path.replace("projected_image.bmp", "debug_projected_image.bmp")}', self.projected_mask_uint)
-        print(f"Projected image debug image saved to {path.replace('projected_image.bmp', 'debug_projected_image.bmp')}")
-        cv2.imwrite(f'{path.replace("projected_image.bmp", "debug_defocused_projected_image.bmp")}', self.defocused_projected_mask_uint)
-        print(f"Defocused projected image debug image saved to {path.replace('projected_image.bmp', 'debug_defocused_projected_image.bmp')}")
 
 
 
     def plot_matplotlib_image_crs(self):
-        fig, ax = plt.subplots(1,2)
-        ax[0].plot(self.resized_defocused_result_uint[:,int((self.W_crop/self.resize_factor)//2)])
-        ax[0].set_ylim(0, 255)
-        ax[0].set_title("Projected Intensity Profile (vertical)")
-        ax[0].set_xlabel("Height (px)")
-        ax[0].set_ylabel("Gray (uint8)")
-        ax[0].grid(True)
-        ax[1].plot(self.resized_defocused_result_uint[int((self.H/self.resize_factor)//2),:])
-        ax[1].set_ylim(0, 255)
-        ax[1].set_title("Projected Intensity Profile (horizontal)")
-        ax[1].set_xlabel("Width (px)")
-        ax[1].set_ylabel("Gray (uint8)")
-        ax[1].grid(True)
+        fig, ax = plt.subplots(2, 2, figsize=(14, 9))
+
+        um_v = self.resized_sampling_width_in_um
+        um_h = self.resized_sampling_width_in_um_along_width
+
+        v_profile = self.resized_defocused_result_uint[:, int((self.W_crop / self.resize_factor) // 2)]
+        h_profile = self.resized_defocused_result_uint[int((self.H / self.resize_factor) // 2), :]
+
+        # Row 1: cross-section
+        for i, (profile, um_per_px, title, xlabel) in enumerate([
+            (v_profile, um_v, "Projected Intensity Profile (vertical)", "Height"),
+            (h_profile, um_h, "Projected Intensity Profile (horizontal)", "Width"),
+        ]):
+            mm_per_px = um_per_px / 1000
+            px = np.arange(len(profile))
+            ax[0, i].plot(px, profile)
+            ax[0, i].set_ylim(0, 255)
+            ax[0, i].set_title(title)
+            ax[0, i].set_xlabel(f"{xlabel} (px)  [1 px = {um_per_px:.3f} um]")
+            ax[0, i].set_ylabel("Gray (uint8)")
+            ax[0, i].grid(True)
+            sec = ax[0, i].secondary_xaxis('top',
+                functions=(lambda x, s=mm_per_px: x * s, lambda x, s=mm_per_px: x / s))
+            sec.set_xlabel("mm")
+
+        # Row 2: FFT
+        for i, (profile, um_per_px, title) in enumerate([
+            (v_profile, um_v, "FFT (vertical)"),
+            (h_profile, um_h, "FFT (horizontal)"),
+        ]):
+            n = len(profile)
+            centered = profile.astype(np.float64) - np.mean(profile)
+            fft_full = np.abs(np.fft.fft(centered))
+            freqs_full = np.fft.fftfreq(n)
+
+            pos_mask = freqs_full > 0
+            freqs_pos = freqs_full[pos_mask]
+            spectrum_pos = fft_full[pos_mask]
+
+            peak_idx = np.argmax(spectrum_pos)
+            peak_freq = freqs_pos[peak_idx]
+            peak_mag = spectrum_pos[peak_idx]
+
+            ax[1, i].plot(freqs_pos, spectrum_pos)
+            ax[1, i].set_title(title)
+            ax[1, i].set_xlabel("Spatial frequency (cycles/px)")
+            ax[1, i].set_ylabel("Magnitude")
+            ax[1, i].grid(True)
+            ax[1, i].set_xlim(0, peak_freq * 6)
+
+            if peak_freq > 0:
+                period_px = 1.0 / peak_freq
+                period_mm = period_px * um_per_px / 1000
+                ax[1, i].annotate(
+                    f"Period = {period_px:.1f} px ({period_mm:.4f} mm)",
+                    xy=(peak_freq, peak_mag),
+                    xytext=(0.55, 0.85), textcoords='axes fraction',
+                    arrowprops=dict(arrowstyle='->', color='red'),
+                    fontsize=9, color='red', fontweight='bold',
+                )
+
+        fig.tight_layout()
         return fig
 
       

@@ -1,5 +1,7 @@
+import os
 import time
 import sys
+from datetime import datetime
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QGraphicsScene, QGraphicsView, QTextEdit, QDialog, QFileDialog, QGroupBox
 from PySide6.QtGui import QImage, QPixmap, QWheelEvent, QPainter, QTextCursor
 from PySide6.QtCore import Qt
@@ -23,6 +25,10 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         print("Initializing...")
+
+        self.session_dir = os.path.join("output", datetime.now().strftime("%Y%m%d_%H%M%S"))
+        os.makedirs(self.session_dir, exist_ok=True)
+        print(f"Output folder: {os.path.abspath(self.session_dir)}")
         # ------------------------------------------------------------------------------------
         # Tab 1
         # ------------------------------------------------------------------------------------
@@ -258,9 +264,9 @@ class MainWindow(QMainWindow):
 
         print("Grating generation complete.")
         if self.ui.saveCheckBox.isChecked():
-            json_path = self.ui.headerLineEdit.text() + 'Grating_params.json'
+            json_path = os.path.join(self.session_dir, self.ui.headerLineEdit.text() + 'Grating_params.json')
             self.save_parameters(input_path=json_path)
-            self.grating_generator.save_grating()
+            self.grating_generator.save_grating(output_dir=self.session_dir)
         self.update_review_parameters()
 
 
@@ -283,17 +289,147 @@ class MainWindow(QMainWindow):
         self.ui.imageWidthMmLineEdit.setStyleSheet("background-color: #aaffff;")
 
     def show_guide(self):
-        """파라미터 가이드 표시"""
-        # TODO: 파라미터 가이드 다이얼로그 구현
-        print("Showing parameter guide...")
+        """파라미터 가이드 다이어그램을 PopupWindow에 표시"""
+        fig = self._create_guide_figure()
+        self.ui.pop_ZGV = ZoomableGraphicsView()
+        self.popup_window = PopupWindow()
+        self.popup_window.layout.addWidget(self.ui.pop_ZGV)
+        self.popup_window.display_matplotlib_fig(self.ui.pop_ZGV, fig)
+        self.popup_window.show()
+        plt.close(fig)
+
+    def _create_guide_figure(self):
+        """현재 파라미터 값을 사용하여 격자 형상 가이드 다이어그램 생성"""
+        fig, ax = plt.subplots(figsize=(14, 10), facecolor='white')
+
+        amp = self.grating_generator.amplitude_of_saw
+        T = self.grating_generator.period_of_saw
+        stem = self.grating_generator.width_of_stem
+        offset = self.grating_generator.offset_btw_pattern
+        edge_d = self.grating_generator.diameter_of_edge_of_saw_in_um
+        period = 2 * amp + stem + offset
+
+        # Triangle wave for 4 sawtooth periods
+        n_saw = 4
+        x = np.linspace(0, n_saw * T, 2000)
+        tri = np.abs(2 * ((x / T) - np.floor(x / T + 0.5)))
+
+        # Pattern boundary: stem center at yc, bottom of pattern at y=0
+        yc = amp + stem / 2
+        def pattern_edges(tri_val, y_center):
+            upper = amp * tri_val + stem / 2 + y_center
+            lower = amp * (tri_val - 1) - stem / 2 + y_center
+            return upper, lower
+
+        u1, l1 = pattern_edges(tri, yc)
+        u2, l2 = pattern_edges(tri, yc - period)
+
+        # Draw patterns
+        fill_kw = dict(color='#4488cc', alpha=0.3, edgecolor='#1155aa', linewidth=1.8)
+        ax.fill_between(x, l1, u1, **fill_kw)
+        ax.fill_between(x, l2, u2, **fill_kw)
+
+        # Stem reference lines
+        ax.axhline(amp + stem, color='#999', ls=':', lw=0.7, zorder=0)
+        ax.axhline(amp, color='#999', ls=':', lw=0.7, zorder=0)
+
+        # Key Y coordinates
+        y_top = 2 * amp + stem
+        y_st = amp + stem
+        y_sb = amp
+        y_bot = 0
+        y_gap_bot = -offset
+
+        # Annotation colors
+        C_saw = '#cc2222'
+        C_amp = '#008800'
+        C_stem = '#cc8800'
+        C_off = '#8800cc'
+        C_per = '#0066cc'
+        C_edge = '#555555'
+
+        xL = -n_saw * T * 0.15
+        xR = n_saw * T * 1.15
+
+        # Vertical dimension line helper
+        def dimv(xp, y1, y2, text, color, side):
+            ax.annotate('', xy=(xp, y2), xytext=(xp, y1),
+                        arrowprops=dict(arrowstyle='<->', color=color, lw=1.5))
+            my = (y1 + y2) / 2
+            ha = 'right' if side == 'left' else 'left'
+            dx = -n_saw * T * 0.02 if side == 'left' else n_saw * T * 0.02
+            ax.text(xp + dx, my, text, ha=ha, va='center', fontsize=9, color=color,
+                    fontweight='bold',
+                    bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=color, alpha=0.9))
+
+        # Horizontal dimension line helper
+        def dimh(yp, x1, x2, text, color):
+            ax.annotate('', xy=(x2, yp), xytext=(x1, yp),
+                        arrowprops=dict(arrowstyle='<->', color=color, lw=1.5))
+            mx = (x1 + x2) / 2
+            ax.text(mx, yp + amp * 0.15, text, ha='center', va='bottom', fontsize=9,
+                    color=color, fontweight='bold',
+                    bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=color, alpha=0.9))
+
+        # Leader line helper
+        def leader(x1, y1, x2, y2, color):
+            ax.plot([x1, x2], [y1, y2], color=color, lw=0.5, ls=':')
+
+        # --- Annotations ---
+
+        # 1. period_of_saw (horizontal, above pattern)
+        yp = y_top + amp * 0.5
+        dimh(yp, T / 2, 3 * T / 2, f'period_of_saw = {T} µm', C_saw)
+        leader(T / 2, y_top, T / 2, yp, C_saw)
+        leader(3 * T / 2, y_top, 3 * T / 2, yp, C_saw)
+
+        # 2. amplitude_of_saw upper (left)
+        dimv(xL, y_st, y_top, f'amplitude_of_saw\n= {amp} µm', C_amp, 'left')
+        leader(xL, y_top, T / 2, y_top, C_amp)
+        leader(xL, y_st, 0, y_st, C_amp)
+
+        # 3. width_of_stem (left)
+        dimv(xL, y_sb, y_st, f'width_of_stem\n= {stem} µm', C_stem, 'left')
+        leader(xL, y_sb, 0, y_sb, C_stem)
+
+        # 4. amplitude_of_saw lower (left, abbreviated)
+        dimv(xL, y_bot, y_sb, f'(= {amp} µm)', C_amp, 'left')
+        leader(xL, y_bot, 0, y_bot, C_amp)
+
+        # 5. offset_btw_pattern (right, in gap)
+        x_off = xR - n_saw * T * 0.08
+        dimv(x_off, y_gap_bot, y_bot, f'offset_btw_pattern\n= {offset} µm', C_off, 'right')
+
+        # 6. period_pattern (far right)
+        dimv(xR, y_gap_bot, y_top, f'period_pattern\n= {period:.2f} µm', C_per, 'right')
+        leader(T / 2, y_top, xR, y_top, C_per)
+        leader(0, y_gap_bot, xR, y_gap_bot, C_per)
+
+        # 7. diameter_of_edge_of_saw (callout at peak)
+        peak_x, peak_y = T / 2, y_top
+        ax.annotate(f'diameter_of_edge_of_saw\n= {edge_d} µm',
+                    xy=(peak_x, peak_y),
+                    xytext=(peak_x + T * 1.5, peak_y + amp * 0.8),
+                    fontsize=9, color=C_edge, fontweight='bold',
+                    bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=C_edge, alpha=0.9),
+                    arrowprops=dict(arrowstyle='->', color=C_edge, lw=1.2,
+                                   connectionstyle='arc3,rad=0.2'))
+
+        # Formatting
+        ax.set_xlim(xL - n_saw * T * 0.2, xR + n_saw * T * 0.2)
+        ax.set_ylim(-period - amp * 0.5, y_top + amp * 1.5)
+        ax.set_xlabel('X direction (along grating teeth) [µm]', fontsize=10)
+        ax.set_ylabel('Y direction (stacking / period direction) [µm]', fontsize=10)
+        ax.set_title('Grating Parameter Guide  (current values)', fontsize=13, fontweight='bold')
+        ax.grid(True, alpha=0.15)
+        fig.tight_layout()
+        return fig
 
 
     def save_parameters(self, input_path = False):
         """현재 파라미터를 JSON 파일로 저장"""
         import json
-        from pathlib import Path
 
-        # 파라미터 딕셔너리 생성
         params = {
             # General Parameters
             'gt_id': self.ui.headerLineEdit.text(),
@@ -319,9 +455,8 @@ class MainWindow(QMainWindow):
 
         }
         if input_path == False:
-            # 파일 저장 다이얼로그 표시
             file_path, _ = QFileDialog.getSaveFileName(
-                self, "Save Parameters", str(Path.home()),
+                self, "Save Parameters", self.session_dir,
                 "JSON Files (*.json);;All Files (*)"
             )
 
@@ -344,11 +479,9 @@ class MainWindow(QMainWindow):
     def load_parameters(self):
         """JSON 파일에서 파라미터 불러오기"""
         import json
-        from pathlib import Path
 
-        # 파일 불러오기 다이얼로그 표시
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Load Parameters", str(Path.home()),
+            self, "Load Parameters", self.session_dir,
             "JSON Files (*.json);;All Files (*)"
         )
 
@@ -401,7 +534,7 @@ class MainWindow(QMainWindow):
         """이미지 로드"""
         print("loading image...")
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Open Image", "", "Image Files (*.bmp *.png *.jpg)"
+            self, "Open Image", self.session_dir, "Image Files (*.bmp *.png *.jpg)"
         )
         if file_path:
             self.mis.load_image(file_path)
@@ -422,7 +555,7 @@ class MainWindow(QMainWindow):
         """그레이팅 파라미터 로드"""
         print("loading grating parameters...")
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Open Parameters", "", "JSON Files (*.json)"
+            self, "Open Parameters", self.session_dir, "JSON Files (*.json)"
         )
         if file_path:
             self.mis.load_grating_parameters(file_path)
@@ -520,7 +653,7 @@ class MainWindow(QMainWindow):
         self.display_image(self.ui.result_image_view, self.mis.imaged_gt_uint, normalize=False)
         print("\t-> microscope image generated.\n")
         if self.ui.saveCheckBox.isChecked():
-            self.mis.save_image()
+            self.mis.save_image(output_dir=self.session_dir)
 
     '''
     Tab 4-----------------------------------------------------------------------------------------------------------
@@ -550,7 +683,7 @@ class MainWindow(QMainWindow):
         """이미지 로드"""
         print("loading image...")
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Open Image", "", "Image Files (*.bmp *.png *.jpg)"
+            self, "Open Image", self.session_dir, "Image Files (*.bmp *.png *.jpg)"
         )
         if file_path:
             self.pis.load_image(file_path)
@@ -571,7 +704,7 @@ class MainWindow(QMainWindow):
         """그레이팅 파라미터 로드"""
         print("loading grating parameters...")
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Open Parameters", "", "JSON Files (*.json)"
+            self, "Open Parameters", self.session_dir, "JSON Files (*.json)"
         )
         if file_path:
             self.pis.load_grating_parameters(file_path)
@@ -766,8 +899,8 @@ class MainWindow(QMainWindow):
             self.display_image(self.ui.prj_projected_image_view, self.pis.resized_result_uint, normalize=False)
             self.display_image(self.ui.prj_defocused_image_view, self.pis.resized_defocused_result_uint, normalize=False)
             if self.ui.prjSaveResultCheckBox.isChecked():
-                self.pis.save_image()
-                json_path = self.pis.header_prefix + 'Projection_params.json'
+                self.pis.save_image(output_dir=self.session_dir)
+                json_path = os.path.join(self.session_dir, self.pis.header_prefix + 'Projection_params.json')
                 self.prj_save_parameters(input_path=json_path)
             print("\t-> microscope image generated.\n")
         except Exception as e:
@@ -791,6 +924,10 @@ class MainWindow(QMainWindow):
     def prj_plot_image_crs(self):
         fig = self.pis.plot_matplotlib_image_crs()
 
+        save_path = os.path.join(self.session_dir, self.pis.header_prefix + 'image_cross_section.png')
+        fig.savefig(save_path, dpi=150)
+        print(f"Cross-section plot saved to {save_path}")
+
         self.ui.pop_ZGV = ZoomableGraphicsView()
         self.popup_window = PopupWindow()
         self.popup_window.layout.addWidget(self.ui.pop_ZGV)
@@ -808,14 +945,11 @@ class MainWindow(QMainWindow):
 
     def prj_save_parameters(self, input_path = False):
         """현재 파라미터를 JSON 파일로 저장"""
-        from pathlib import Path
-
         self.prj_update_parameters()
 
         if input_path == False:
-            # 파일 저장 다이얼로그 표시
             file_path, _ = QFileDialog.getSaveFileName(
-                self, "Save Parameters", str(Path.home()),
+                self, "Save Parameters", self.session_dir,
                 "JSON Files (*.json);;All Files (*)"
             )
             if file_path:
@@ -832,11 +966,8 @@ class MainWindow(QMainWindow):
 
     def prj_load_parameters(self):
         """JSON 파일에서 파라미터 불러오기"""
-        from pathlib import Path
-
-        # 파일 불러오기 다이얼로그 표시
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Load Parameters", str(Path.home()),
+            self, "Load Parameters", self.session_dir,
             "JSON Files (*.json);;All Files (*)"
         )
 
