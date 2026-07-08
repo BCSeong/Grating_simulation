@@ -10,10 +10,10 @@
 | Tab 2 | **현미경 시뮬레이터** — OTF 기반 비간섭 이미징 시뮬레이션 (다색 지원) | [tab2_microscope_simulator.md](docs/tab2_microscope_simulator.md) |
 | Tab 3 | **Scheimpflug 시뮬레이터** — Homography 변환 + 역제곱/cos⁴ 밝기 감쇠 보정 | [tab3_scheimpflug_simulator.md](docs/tab3_scheimpflug_simulator.md) |
 | Tab 4 | **프로젝션 시뮬레이터** — 프로젝션 OTF + 근축 탈초점 + through-focus PSF 전파 | [tab4_projection_simulator.md](docs/tab4_projection_simulator.md) |
-| Tab 5 | **FFT 이미지 분석** — 2D FFT 방향 검출 + 1D FFT 주기 측정 (parabolic fitting) | [tab5_fft_analyzer.md](docs/tab5_fft_analyzer.md) |
+| Tab 5 | **FFT 이미지 분석** — Hann window 기반 방향 자동 검출 + crosshair/profile preview + 1D FFT 주기 측정 | [tab5_fft_analyzer.md](docs/tab5_fft_analyzer.md) |
 
 전체 아키텍처: [docs/architecture.md](docs/architecture.md)
-커스텀 위젯: [docs/widgets.md](docs/widgets.md)
+커스텀 위젯 + 비동기 실행 인프라: [docs/widgets.md](docs/widgets.md)
 
 ## 설치
 
@@ -85,7 +85,7 @@ python run.py
 │   ├── ui/                   # UI 정의 + 커스텀 위젯
 │   │   ├── main_window.ui    # Qt Designer 원본
 │   │   ├── main_window_ui.py # 자동생성 코드 (수정 금지)
-│   │   └── widgets.py        # ZoomableGraphicsView, PopupWindow, TextRedirector
+│   │   └── widgets.py        # 커스텀 위젯 + 비동기 실행 인프라
 │   └── simulators/           # 시뮬레이션 엔진 (GUI 독립)
 │       ├── grating.py        # 격자 패턴 생성
 │       ├── microscope.py     # 현미경 OTF 시뮬레이션
@@ -133,3 +133,11 @@ pis.run('grating.bmp', 'grating_parameters.json')
 ## 출력
 
 모든 결과는 `output/YYYYMMDD_HHMMSS/` 형식의 세션 폴더에 자동 저장됩니다. 실행 간 결과가 덮어씌워지지 않습니다.
+
+## EXE 배포
+
+PyInstaller를 이용한 standalone EXE 빌드 방법은 [readme_build.md](readme_build.md)를 참고하세요.
+
+```bash
+build.bat
+```

@@ -1,11 +1,78 @@
+import traceback
 from io import BytesIO
 
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QGraphicsScene, QGraphicsView
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QGraphicsScene, QGraphicsView,
+                                QLabel, QProgressBar, QPushButton)
 from PySide6.QtGui import QImage, QPixmap, QWheelEvent, QPainter, QTextCursor
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal, QThread, QObject
 
 import numpy as np
 import cv2
+
+
+class CancellationError(Exception):
+    pass
+
+
+class WorkerThread(QThread):
+    progress = Signal(int, int, str)
+    finished = Signal(object)
+    error = Signal(str)
+    cancelled = Signal()
+
+    def __init__(self, fn, parent=None):
+        super().__init__(parent)
+        self._fn = fn
+        self._cancelled = False
+
+    def cancel(self):
+        self._cancelled = True
+
+    def make_callback(self):
+        def callback(current, total, msg=""):
+            if self._cancelled:
+                raise CancellationError()
+            self.progress.emit(current, total, msg)
+        return callback
+
+    def run(self):
+        try:
+            result = self._fn(progress_callback=self.make_callback())
+            if not self._cancelled:
+                self.finished.emit(result)
+        except CancellationError:
+            self.cancelled.emit()
+        except Exception:
+            self.error.emit(traceback.format_exc())
+
+
+class ProgressDialog(QDialog):
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setModal(True)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
+        self.setFixedWidth(450)
+
+        layout = QVBoxLayout(self)
+        self._label = QLabel("Preparing...")
+        self._bar = QProgressBar()
+        self._bar.setMinimum(0)
+        self._cancel_btn = QPushButton("Force Stop")
+        layout.addWidget(self._label)
+        layout.addWidget(self._bar)
+        layout.addWidget(self._cancel_btn)
+
+    def update_progress(self, current, total, msg):
+        self._bar.setMaximum(total)
+        self._bar.setValue(current)
+        if msg:
+            self._label.setText(msg)
+
+    def set_cancelling(self):
+        self._label.setText("Cancelling... please wait")
+        self._cancel_btn.setEnabled(False)
+        self._cancel_btn.setText("Stopping...")
 
 
 ''' Usage:
@@ -95,14 +162,21 @@ class ZoomableGraphicsView(QGraphicsView):
         delta = newPos - oldPos
         self.translate(delta.x(), delta.y())
 
-class TextRedirector:
-    def __init__(self, text_widget):
-        self.text_widget = text_widget
+class TextRedirector(QObject):
+    _append_signal = Signal(str)
 
-    def write(self, string):
+    def __init__(self, text_widget):
+        super().__init__()
+        self.text_widget = text_widget
+        self._append_signal.connect(self._append_text)
+
+    def _append_text(self, string):
         self.text_widget.moveCursor(QTextCursor.End)
         self.text_widget.insertPlainText(string)
         self.text_widget.moveCursor(QTextCursor.End)
+
+    def write(self, string):
+        self._append_signal.emit(string)
 
     def flush(self):
         pass

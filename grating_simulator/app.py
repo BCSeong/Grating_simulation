@@ -1,13 +1,12 @@
 import os
-import time
 import sys
 from datetime import datetime
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QGraphicsScene, QGraphicsView, QTextEdit, QDialog, QFileDialog, QGroupBox
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QGraphicsScene, QGraphicsView, QTextEdit, QDialog, QFileDialog, QGroupBox, QPushButton
 from PySide6.QtGui import QImage, QPixmap, QWheelEvent, QPainter, QTextCursor
 from PySide6.QtCore import Qt
 
 from grating_simulator.ui.main_window_ui import Ui_MainWindow
-from grating_simulator.ui.widgets import PopupWindow, ZoomableGraphicsView, TextRedirector
+from grating_simulator.ui.widgets import PopupWindow, ZoomableGraphicsView, TextRedirector, WorkerThread, ProgressDialog
 
 from grating_simulator.simulators.grating import Grating_generator
 from grating_simulator.simulators.microscope import Microscope_image_simulator
@@ -154,7 +153,58 @@ class MainWindow(QMainWindow):
         self._create_fft_tab_ui()
         self._connect_fft_signals()
 
+        self._hidden_buttons = [
+            self.ui.prjPSFcrsPushButton_2,
+            self.ui.prjPlotPSFCrspushButton_2,
+        ]
+
         print("Initialization complete.")
+
+    # ---- Progress bar infrastructure ----
+
+    def run_with_progress(self, fn, title, on_finished=None):
+        for btn in self.findChildren(QPushButton):
+            btn.setEnabled(False)
+
+        self._progress_dlg = ProgressDialog(title, self)
+        self._worker = WorkerThread(fn, parent=self)
+
+        self._worker.progress.connect(self._progress_dlg.update_progress)
+        self._worker.finished.connect(lambda result: self._on_task_finished(result, on_finished))
+        self._worker.error.connect(self._on_task_error)
+        self._worker.cancelled.connect(self._on_task_cancelled)
+        self._progress_dlg._cancel_btn.clicked.connect(self._request_cancel)
+
+        self._worker.start()
+        self._progress_dlg.show()
+
+    def _request_cancel(self):
+        self._progress_dlg.set_cancelling()
+        self._worker.cancel()
+
+    def _restore_buttons(self):
+        for btn in self.findChildren(QPushButton):
+            btn.setEnabled(True)
+        for btn in self._hidden_buttons:
+            btn.setVisible(False)
+
+    def _on_task_finished(self, result, callback):
+        self._progress_dlg.close()
+        self._restore_buttons()
+        if callback:
+            callback(result)
+
+    def _on_task_cancelled(self):
+        self._progress_dlg.close()
+        self._restore_buttons()
+        print("Task cancelled by user.")
+
+    def _on_task_error(self, error_msg):
+        self._progress_dlg.close()
+        self._restore_buttons()
+        print(f"Error during task:\n{error_msg}")
+
+    # ---- end progress bar ----
 
     def display_image(self, graphics_view, img, normalize=True,  dheight=1, dwidth=1):
         """이미지를 graphics_view에 표시"""
@@ -560,6 +610,13 @@ class MainWindow(QMainWindow):
         self.ui.OTFPushButton.clicked.connect(self.calculate_OTF)
         self.ui.RunPushButton.clicked.connect(self.generate_microscope_image)
 
+        # Auto-init checkbox (programmatic)
+        from PySide6.QtWidgets import QCheckBox
+        self.ui.misAutoInitializeCheckBox = QCheckBox("Auto Initialize")
+        self.ui.misAutoInitializeCheckBox.setChecked(True)
+        self.ui.horizontalLayout_14.insertWidget(1, self.ui.misAutoInitializeCheckBox)
+        self.ui.misAutoInitializeCheckBox.clicked.connect(self.connect_microscope_parameter_signals)
+
     def load_microscope_image(self):
         """이미지 로드"""
         print("loading image...")
@@ -607,20 +664,35 @@ class MainWindow(QMainWindow):
         print("\t-> microscope simulator initialized.\n")
 
     def connect_microscope_parameter_signals(self):
-        """MicroscopeImageSimulatorTab의 파라미터 시그널 연결"""
-        # General Parameters
-        self.ui.headerLineEdit_2.textChanged.connect(self.update_microscope_parameters)
-        self.ui.nAOfOpticsDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
+        """MicroscopeImageSimulatorTab의 파라미터 시그널 연결 또는 해제"""
+        if not hasattr(self, '_mis_signals_connected'):
+            self._mis_signals_connected = False
 
-        # Spectrum Parameters
-        self.ui.spectrumMinUmDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
-        self.ui.spectrumMaxUmDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
-        self.ui.spectrumStepDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
-
-        # Image Parameters
-        self.ui.samplingSizeUmDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
-        self.ui.heightPxLineEdit.textChanged.connect(self.update_microscope_parameters)
-        self.ui.widthPxLineEdit.textChanged.connect(self.update_microscope_parameters)
+        if self.ui.misAutoInitializeCheckBox.isChecked() and not self._mis_signals_connected:
+            self.ui.headerLineEdit_2.textChanged.connect(self.update_microscope_parameters)
+            self.ui.nAOfOpticsDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
+            self.ui.spectrumMinUmDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
+            self.ui.spectrumMaxUmDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
+            self.ui.spectrumStepDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
+            self.ui.samplingSizeUmDoubleSpinBox.valueChanged.connect(self.update_microscope_parameters)
+            self.ui.heightPxLineEdit.textChanged.connect(self.update_microscope_parameters)
+            self.ui.widthPxLineEdit.textChanged.connect(self.update_microscope_parameters)
+            self._mis_signals_connected = True
+            print("Auto-update enabled: Parameters will update automatically when changed")
+        elif not self.ui.misAutoInitializeCheckBox.isChecked() and self._mis_signals_connected:
+            try:
+                self.ui.headerLineEdit_2.textChanged.disconnect(self.update_microscope_parameters)
+                self.ui.nAOfOpticsDoubleSpinBox.valueChanged.disconnect(self.update_microscope_parameters)
+                self.ui.spectrumMinUmDoubleSpinBox.valueChanged.disconnect(self.update_microscope_parameters)
+                self.ui.spectrumMaxUmDoubleSpinBox.valueChanged.disconnect(self.update_microscope_parameters)
+                self.ui.spectrumStepDoubleSpinBox.valueChanged.disconnect(self.update_microscope_parameters)
+                self.ui.samplingSizeUmDoubleSpinBox.valueChanged.disconnect(self.update_microscope_parameters)
+                self.ui.heightPxLineEdit.textChanged.disconnect(self.update_microscope_parameters)
+                self.ui.widthPxLineEdit.textChanged.disconnect(self.update_microscope_parameters)
+            except TypeError:
+                pass
+            self._mis_signals_connected = False
+            print("Auto-update disabled: Use 'Initialize' button to update parameters")
 
     def update_microscope_parameters(self):
         """UI의 현재 상태를 MicroscopeImageSimulator의 파라미터로 업데이트"""
@@ -668,13 +740,19 @@ class MainWindow(QMainWindow):
         """OTF 계산"""
         print("calculating OTF...")
         self.mis.initialize_optics()
-        self.mis.calculate_OTF()
-        dky = self.mis.dky
-        dkx = self.mis.dkx
-        ratio = dky/dkx
-        self.display_image(self.ui.OTF_view, self.mis.eff_OTF_uint, normalize=False,
-                           dheight=1, dwidth=1/ratio)
-        print("\t-> OTF calculated.\n")
+
+        def task(progress_callback=None):
+            self.mis.calculate_OTF(progress_callback=progress_callback)
+
+        def on_done(_):
+            dky = self.mis.dky
+            dkx = self.mis.dkx
+            ratio = dky / dkx
+            self.display_image(self.ui.OTF_view, self.mis.eff_OTF_uint, normalize=False,
+                               dheight=1, dwidth=1/ratio)
+            print("\t-> OTF calculated.\n")
+
+        self.run_with_progress(task, "Calculating OTF (Microscope)", on_done)
 
     def generate_microscope_image(self):
         """현미경 이미지 생성"""
@@ -692,6 +770,9 @@ class MainWindow(QMainWindow):
 
     def initialize_projection_image_simulator_tab(self):
         """MicroscopeImageSimulatorTab 초기화 및 시그널 연결"""
+
+        # edge remover 기본값: True
+        self.ui.prjEdgeRemoverGroupBox.setChecked(True)
 
         # 이미지 로드 버튼 연결
         self.ui.prjLoadGratingPushButton.clicked.connect(self.prj_load_image)
@@ -911,45 +992,53 @@ class MainWindow(QMainWindow):
         """OTF 계산"""
         print("calculating OTF...")
         self.pis.initialize_optics()
-        self.pis.calculate_OTF()
-        dky = self.pis.dky
-        dkx = self.pis.dkx
-        ratio = dky/dkx
 
-        self.display_image(self.ui.prj_OTF_view, self.pis.eff_defocus_OTF_uint,
-                           normalize=False, dheight=1, dwidth=1/ratio)
-        print("\t-> OTF calculated.\n")
+        def task(progress_callback=None):
+            self.pis.calculate_OTF(progress_callback=progress_callback)
+
+        def on_done(_):
+            dky = self.pis.dky
+            dkx = self.pis.dkx
+            ratio = dky / dkx
+            self.display_image(self.ui.prj_OTF_view, self.pis.eff_defocus_OTF_uint,
+                               normalize=False, dheight=1, dwidth=1/ratio)
+            print("\t-> OTF calculated.\n")
+
+        self.run_with_progress(task, "Calculating OTF (Projection)", on_done)
 
     def prj_generate_projected_image(self):
         """프로젝션 이미지 생성"""
-        print("generating microscope image...")
-        try:
+        print("generating projected image...")
+
+        def task(progress_callback=None):
             self.pis.perform_OTF()
             self.pis.resize_result()
+
+        def on_done(_):
             self.display_image(self.ui.prj_projected_image_view, self.pis.resized_result_uint, normalize=False)
             self.display_image(self.ui.prj_defocused_image_view, self.pis.resized_defocused_result_uint, normalize=False)
             if self.ui.prjSaveResultCheckBox.isChecked():
                 self.pis.save_image(output_dir=self.session_dir)
                 json_path = os.path.join(self.session_dir, self.pis.header_prefix + 'Projection_params.json')
                 self.prj_save_parameters(input_path=json_path)
-            print("\t-> microscope image generated.\n")
-        except Exception as e:
-            print(f"Error: {str(e)}")
+            print("\t-> projected image generated.\n")
+
+        self.run_with_progress(task, "Generating Projected Image", on_done)
 
     def prj_create_PSFcrs(self):
         """PSF 생성"""
-        print("creating PSF...")
-        print("** It may take a while... **")
+        print("creating PSF cross-section...")
 
-        # GUI 업데이트를 위한 잠시 대기
-        QApplication.processEvents()
+        def task(progress_callback=None):
+            self.pis.check_psf_prop(progress_callback=progress_callback)
 
-        time.sleep(0.1)
-        self.pis.check_psf_prop()
-        H,W = self.pis.psf_crs_uint.shape[:2]
-        self.display_image(self.ui.prj_PSFcrs_view, self.pis.psf_crs_uint, normalize=False,
-                           dheight=1, dwidth=H/W) # set image ratio to squre
-        print("\t-> PSF created.\n")
+        def on_done(_):
+            H, W = self.pis.psf_crs_uint.shape[:2]
+            self.display_image(self.ui.prj_PSFcrs_view, self.pis.psf_crs_uint, normalize=False,
+                               dheight=1, dwidth=H/W)
+            print("\t-> PSF created.\n")
+
+        self.run_with_progress(task, "PSF Propagation (64 steps)", on_done)
 
     def prj_plot_image_crs(self):
         fig = self.pis.plot_matplotlib_image_crs()
@@ -1040,7 +1129,7 @@ class MainWindow(QMainWindow):
     def initialize_scheimpflug_tab(self):
         self.ui.aswLoadProjectedFlatImagePushButton.clicked.connect(self.asw_load_image)
         self.ui.aswLoadProjectorParamsPushButton.clicked.connect(self.asw_load_params)
-        self.ui.aswInitializePushButton.clicked.connect(self.asw_initialize)
+        self.ui.aswInitializePushButton.clicked.connect(self.asw_init_connect_parameter)
 
         self.ui.prjOTFPushButton_2.setText("4. Apply Homography")
         self.ui.prjRunPushButton_2.setText("5. Compute Brightness")
@@ -1060,6 +1149,22 @@ class MainWindow(QMainWindow):
         self.ui.prjPushButton_save_2.clicked.connect(self.asw_save_parameters)
         self.ui.prjPushButton_load_2.clicked.connect(self.asw_load_parameters)
 
+        # edge remover 기본값: True
+        self.ui.prjEdgeRemoverGroupBox_2.setChecked(True)
+
+        # Auto-init checkbox (programmatic)
+        from PySide6.QtWidgets import QCheckBox, QFormLayout
+        self.ui.aswAutoInitializeCheckBox = QCheckBox("Auto Initialize")
+        self.ui.aswAutoInitializeCheckBox.setChecked(True)
+        self.ui.horizontalLayout_40.insertWidget(1, self.ui.aswAutoInitializeCheckBox)
+        self.ui.aswAutoInitializeCheckBox.clicked.connect(self.asw_connect_parameter_signals)
+
+        # Replace QLineEdit with QCheckBox for stretch-to-square
+        self.ui.stretchImageToSquareLineEdit.setVisible(False)
+        self.ui.stretchImageToSquareCheckBox = QCheckBox("Enable")
+        self.ui.stretchImageToSquareCheckBox.setChecked(True)
+        self.ui.formLayout_31.setWidget(2, QFormLayout.ItemRole.FieldRole, self.ui.stretchImageToSquareCheckBox)
+
     def asw_load_image(self):
         print("loading image for Scheimpflug...")
         file_path, _ = QFileDialog.getOpenFileName(
@@ -1067,8 +1172,7 @@ class MainWindow(QMainWindow):
         if file_path:
             from grating_simulator.simulators.scheimpflug import stretch_image_to_square
             self.ss.load_image(file_path)
-            stretch = self.ui.stretchImageToSquareLineEdit.text().strip().lower()
-            if stretch in ('true', '1', 'yes'):
+            if self.ui.stretchImageToSquareCheckBox.isChecked():
                 self.ss.proj_image_float = stretch_image_to_square(self.ss.proj_image_float)
                 self.ss.proj_image_bmp = self.ss.proj_image_float.astype(np.uint8)
                 self.ss.H, self.ss.W = self.ss.proj_image_float.shape[:2]
@@ -1097,8 +1201,41 @@ class MainWindow(QMainWindow):
                 self.ui.prjWidthMmLineEdit_2.setText(f"{self.ss.W * pixel_mm:.2f}")
             print("\t-> projection parameters loaded.\n")
 
-    def asw_initialize(self):
+    def asw_init_connect_parameter(self):
         print("initializing Scheimpflug simulator...")
+        self.asw_connect_parameter_signals()
+        self.asw_update_parameters()
+        print("\t-> Scheimpflug simulator initialized.\n")
+
+    def asw_connect_parameter_signals(self):
+        """Scheimpflug 파라미터 시그널 연결 또는 해제"""
+        if not hasattr(self, '_asw_signals_connected'):
+            self._asw_signals_connected = False
+
+        if self.ui.aswAutoInitializeCheckBox.isChecked() and not self._asw_signals_connected:
+            self.ui.xProjectionAngleDegDoubleSpinBox.valueChanged.connect(self.asw_update_parameters)
+            self.ui.yProjectionAngleDegDoubleSpinBox.valueChanged.connect(self.asw_update_parameters)
+            self.ui.prjEdgeRemoverGroupBox_2.toggled.connect(self.asw_update_parameters)
+            self.ui.prjEdgeRemoverFactorDoubleSpinBox_2.valueChanged.connect(self.asw_update_parameters)
+            self._asw_signals_connected = True
+            print("Auto-update enabled: Parameters will update automatically when changed")
+        elif not self.ui.aswAutoInitializeCheckBox.isChecked() and self._asw_signals_connected:
+            try:
+                self.ui.xProjectionAngleDegDoubleSpinBox.valueChanged.disconnect(self.asw_update_parameters)
+                self.ui.yProjectionAngleDegDoubleSpinBox.valueChanged.disconnect(self.asw_update_parameters)
+                self.ui.prjEdgeRemoverGroupBox_2.toggled.disconnect(self.asw_update_parameters)
+                self.ui.prjEdgeRemoverFactorDoubleSpinBox_2.valueChanged.disconnect(self.asw_update_parameters)
+            except TypeError:
+                pass
+            self._asw_signals_connected = False
+            print("Auto-update disabled: Use 'Initialize' button to update parameters")
+
+    def asw_update_parameters(self):
+        if self.ss.H == 0 or self.ss.W == 0 or self.ss.z0_mm == 0:
+            return
+        print("\nupdating Scheimpflug parameters...", flush=True)
+        QApplication.processEvents()
+
         self.ss.x_rot_deg = self.ui.xProjectionAngleDegDoubleSpinBox.value()
         self.ss.y_rot_deg = self.ui.yProjectionAngleDegDoubleSpinBox.value()
         self.ss.header_prefix = self.ui.prjHeaderPrefixLineEdit_2.text()
@@ -1116,31 +1253,44 @@ class MainWindow(QMainWindow):
         object_y_angle = -np.rad2deg(np.arctan(np.tan(np.deg2rad(self.ss.y_rot_deg)) / mag))
         self.ui.xGratingTiltAngleDegLineEdit.setText(f"{object_x_angle:.4f}")
         self.ui.yGratingTiltAngleDegLineEdit.setText(f"{object_y_angle:.4f}")
-        print("\t-> Scheimpflug simulator initialized.\n")
+        print('============================================')
 
     def asw_apply_homography(self):
         print("applying homography...")
         self.ss.apply_homography()
         self.display_image(self.ui.asw_warped_image_view, self.ss.warped_image, normalize=True)
+
+        save_path = os.path.join(self.session_dir, self.ss.header_prefix + 'warped_image.bmp')
+        cv2.imwrite(save_path, self.ss.warped_image.astype(np.uint8))
+        print(f"\t-> warped image saved to {save_path}")
         print("\t-> homography applied.\n")
 
     def asw_compute_attenuation(self):
         print("computing brightness attenuation...")
-        print("** This may take a while (GPU computation)... **")
-        QApplication.processEvents()
 
-        self.ss.compute_pixel_to_camera_distance_and_scale_gpu()
-        self.ss.final_result = self.ss.inv_sqr_raw * self.ss.warped_image
+        def task(progress_callback=None):
+            self.ss.compute_pixel_to_camera_distance_and_scale(progress_callback=progress_callback)
+            self.ss.final_result = self.ss.inv_sqr_raw * self.ss.attenuation_map * self.ss.warped_image
 
-        attenuation_display = (self.ss.inv_sqr_raw / np.max(self.ss.inv_sqr_raw) * 255).astype(np.uint8)
-        self.display_image(self.ui.asw_attenuation_view, attenuation_display, normalize=False)
-        self.display_image(self.ui.asw_final_result_view, self.ss.final_result, normalize=True)
+        def on_done(_):
+            attenuation_display = (self.ss.inv_sqr_raw / np.max(self.ss.inv_sqr_raw) * 255).astype(np.uint8)
+            self.display_image(self.ui.asw_attenuation_view, attenuation_display, normalize=False)
+            self.display_image(self.ui.asw_final_result_view, self.ss.final_result, normalize=True)
 
-        if self.ui.prjSaveResultCheckBox_2.isChecked():
-            self.ss.save_image(output_dir=self.session_dir)
+            save_path = os.path.join(self.session_dir, self.ss.header_prefix + 'scheimpflug_final_result.bmp')
+            cv2.imwrite(save_path, self.ss.final_result.astype(np.uint8))
+            tiff_path = os.path.join(self.session_dir, self.ss.header_prefix + 'brightness_attenuation.tiff')
+            cv2.imwrite(tiff_path, self.ss.inv_sqr_raw.astype(np.float32))
+            cos4_path = os.path.join(self.session_dir, self.ss.header_prefix + 'cos4_attenuation.tiff')
+            cv2.imwrite(cos4_path, self.ss.attenuation_map.astype(np.float32))
             json_path = os.path.join(self.session_dir, self.ss.header_prefix + 'Scheimpflug_params.json')
             self.ss.save_parameters_json_dict(json_path)
-        print("\t-> brightness attenuation computed.\n")
+            print(f"\t-> final result saved to {save_path}")
+            print(f"\t-> brightness attenuation matrix saved to {tiff_path}")
+            print(f"\t-> parameters saved to {json_path}")
+            print("\t-> brightness attenuation computed.\n")
+
+        self.run_with_progress(task, "Computing Brightness Attenuation", on_done)
 
     def asw_plot_cross_section(self):
         fig = self.ss.imshow_result()
@@ -1188,10 +1338,12 @@ class MainWindow(QMainWindow):
         btn_layout = QHBoxLayout()
         self.ui.fftLoadImageBtn = QPushButton("1. Load Image (*.bmp)")
         self.ui.fftAutoDetectBtn = QPushButton("2. Auto-Detect Angle")
+        self.ui.fftPreviewBtn = QPushButton("Preview")
         self.ui.fftAnalyzeBtn = QPushButton("3. Analyze && Plot")
         self.ui.fftSaveFigBtn = QPushButton("4. Save Figure")
         btn_layout.addWidget(self.ui.fftLoadImageBtn)
         btn_layout.addWidget(self.ui.fftAutoDetectBtn)
+        btn_layout.addWidget(self.ui.fftPreviewBtn)
         btn_layout.addWidget(self.ui.fftAnalyzeBtn)
         btn_layout.addWidget(self.ui.fftSaveFigBtn)
         btn_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
@@ -1244,6 +1396,7 @@ class MainWindow(QMainWindow):
     def _connect_fft_signals(self):
         self.ui.fftLoadImageBtn.clicked.connect(self.fft_load_image)
         self.ui.fftAutoDetectBtn.clicked.connect(self.fft_auto_detect)
+        self.ui.fftPreviewBtn.clicked.connect(self.fft_preview_rotation)
         self.ui.fftAnalyzeBtn.clicked.connect(self.fft_analyze)
         self.ui.fftSaveFigBtn.clicked.connect(self.fft_save_figure)
 
@@ -1255,7 +1408,17 @@ class MainWindow(QMainWindow):
             self.fft_analyzer.load_image(file_path)
             self.ui.fftImageSizeLineEdit.setText(f"{self.fft_analyzer.H} x {self.fft_analyzer.W}")
             self.display_image(self.ui.fft_original_view, self.fft_analyzer.img, normalize=False)
-            print(f"\t-> image loaded ({self.fft_analyzer.H} x {self.fft_analyzer.W}).\n")
+
+            FFT_PREVIEW_MAX_PX = 1024
+            img = self.fft_analyzer.img
+            h, w = img.shape[:2]
+            if max(h, w) > FFT_PREVIEW_MAX_PX:
+                scale = FFT_PREVIEW_MAX_PX / max(h, w)
+                self._fft_preview_img = cv2.resize(img, (int(w * scale), int(h * scale)),
+                                                   interpolation=cv2.INTER_AREA)
+            else:
+                self._fft_preview_img = img.copy()
+            print(f"\t-> image loaded ({h} x {w}), preview ({self._fft_preview_img.shape[0]} x {self._fft_preview_img.shape[1]}).\n")
 
     def fft_auto_detect(self):
         if self.fft_analyzer.img is None:
@@ -1267,6 +1430,72 @@ class MainWindow(QMainWindow):
         self.ui.fftDetectedAngleLineEdit.setStyleSheet("background-color: #90EE90;")
         self.ui.fftManualAngleSpinBox.setValue(angle)
         print(f"\t-> detected angle: {angle:.3f} deg\n")
+
+    def fft_preview_rotation(self):
+        if not hasattr(self, '_fft_preview_img') or self._fft_preview_img is None:
+            print("Error: Load an image first.")
+            return
+        angle = self.ui.fftManualAngleSpinBox.value()
+        img = self._fft_preview_img
+        h, w = img.shape[:2]
+        M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
+        cos_a, sin_a = abs(M[0, 0]), abs(M[0, 1])
+        new_w = int(h * sin_a + w * cos_a)
+        new_h = int(h * cos_a + w * sin_a)
+        M[0, 2] += (new_w - w) / 2
+        M[1, 2] += (new_h - h) / 2
+        rotated = cv2.warpAffine(img, M, (new_w, new_h))
+
+        cy, cx = new_h // 2, new_w // 2
+        h_profile = rotated[cy, :].astype(np.float64)
+        v_profile = rotated[:, cx].astype(np.float64)
+
+        prof_w = max(60, new_w // 5)
+        prof_h = max(60, new_h // 5)
+        self._fft_composite = self._build_crosshair_composite(rotated, h_profile, v_profile,
+                                                              cy, cx, prof_h, prof_w)
+        self.ui.fft_rotated_view.resetTransform()
+        self.display_image(self.ui.fft_rotated_view, self._fft_composite, normalize=False)
+
+    @staticmethod
+    def _build_crosshair_composite(gray_img, h_prof, v_prof, cy, cx, prof_h, prof_w):
+        img_h, img_w = gray_img.shape[:2]
+        total_w = img_w + prof_w
+        total_h = img_h + prof_h
+        canvas = np.ones((total_h, total_w, 3), dtype=np.uint8) * 240
+
+        rgb = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2BGR)
+        cv2.line(rgb, (0, cy), (img_w - 1, cy), (80, 80, 255), 1)
+        cv2.line(rgb, (cx, 0), (cx, img_h - 1), (255, 80, 80), 1)
+        canvas[:img_h, :img_w] = rgb
+
+        margin = 6
+        # H profile (bottom)
+        draw_h = prof_h - 2 * margin
+        p = np.clip(h_prof, 0, 255) / 255.0
+        x = np.linspace(0, img_w - 1, len(p)).astype(np.int32)
+        y = (prof_h - margin - p * draw_h).astype(np.int32)
+        pts = np.stack([x, y], axis=1)
+        h_canvas = np.ones((prof_h, img_w, 3), dtype=np.uint8) * 240
+        cv2.polylines(h_canvas, [pts], False, (80, 80, 255), 2, cv2.LINE_AA)
+        cv2.line(h_canvas, (cx, 0), (cx, prof_h - 1), (200, 200, 200), 1)
+        cv2.rectangle(h_canvas, (0, 0), (img_w - 1, prof_h - 1), (160, 160, 160), 1)
+        canvas[img_h:total_h, :img_w] = h_canvas
+
+        # V profile (right, top-down)
+        p = np.clip(v_prof, 0, 255) / 255.0
+        draw_w = prof_w - 2 * margin
+        x_pts = (margin + p * draw_w).astype(np.int32)
+        y_pts = np.linspace(0, img_h - 1, len(p)).astype(np.int32)
+        pts = np.stack([x_pts, y_pts], axis=1)
+        v_canvas = np.ones((img_h, prof_w, 3), dtype=np.uint8) * 240
+        cv2.polylines(v_canvas, [pts], False, (255, 80, 80), 2, cv2.LINE_AA)
+        cv2.line(v_canvas, (0, cy), (prof_w - 1, cy), (200, 200, 200), 1)
+        cv2.rectangle(v_canvas, (0, 0), (prof_w - 1, img_h - 1), (160, 160, 160), 1)
+        canvas[:img_h, img_w:total_w] = v_canvas
+
+        cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB, canvas)
+        return canvas
 
     def fft_analyze(self):
         if self.fft_analyzer.img is None:
@@ -1288,12 +1517,27 @@ class MainWindow(QMainWindow):
         self.popup_window.layout.addWidget(self.ui.pop_ZGV)
         self.popup_window.display_matplotlib_fig(self.ui.pop_ZGV, self._fft_fig)
         self.popup_window.show()
+
+        fig_path = os.path.join(self.session_dir, 'fft_analysis.png')
+        self._fft_fig.savefig(fig_path, dpi=150)
+        print(f"\t-> figure saved to {fig_path}")
+        if self.fft_analyzer.rotated_img is not None:
+            rotated_path = os.path.join(self.session_dir, 'fft_rotated_image.bmp')
+            cv2.imwrite(rotated_path, self.fft_analyzer.rotated_img)
+            print(f"\t-> rotated image saved to {rotated_path}")
         print("\t-> analysis complete.\n")
 
     def fft_save_figure(self):
         if not hasattr(self, '_fft_fig') or self._fft_fig is None:
             print("Error: Run analysis first.")
             return
-        save_path = os.path.join(self.session_dir, 'fft_analysis.png')
-        self._fft_fig.savefig(save_path, dpi=150)
-        print(f"FFT analysis figure saved to {save_path}")
+        save_dir = QFileDialog.getExistingDirectory(self, "Select Save Directory", self.session_dir)
+        if not save_dir:
+            return
+        fig_path = os.path.join(save_dir, 'fft_analysis.png')
+        self._fft_fig.savefig(fig_path, dpi=150)
+        print(f"FFT analysis figure saved to {fig_path}")
+        if self.fft_analyzer.rotated_img is not None:
+            rotated_path = os.path.join(save_dir, 'fft_rotated_image.bmp')
+            cv2.imwrite(rotated_path, self.fft_analyzer.rotated_img)
+            print(f"Rotated image saved to {rotated_path}")

@@ -17,12 +17,14 @@ atp2_20250424_refactoring_GUIver/
 │
 ├── grating_simulator/              # 메인 패키지
 │   ├── __init__.py
-│   ├── app.py                      # MainWindow (전체 GUI 로직, ~1200행)
+│   ├── app.py                      # MainWindow (전체 GUI 로직, ~1385행)
 │   │
 │   ├── ui/                         # UI 정의
 │   │   ├── main_window.ui          # Qt Designer 원본 UI (수정 금지)
 │   │   ├── main_window_ui.py       # uic 자동생성 Python 코드 (수정 금지)
-│   │   └── widgets.py              # 커스텀 위젯 (ZoomableGraphicsView, PopupWindow, TextRedirector)
+│   │   └── widgets.py              # 커스텀 위젯 + 비동기 실행 인프라
+│   │   #                              CancellationError, WorkerThread, ProgressDialog,
+│   │   #                              PopupWindow, ZoomableGraphicsView, TextRedirector(QObject)
 │   │
 │   └── simulators/                 # 시뮬레이션 엔진 (GUI 독립)
 │       ├── __init__.py
@@ -187,6 +189,35 @@ __init__()
     ├── _create_fft_tab_ui() — 프로그래밍 방식 UI 생성
     └── _connect_fft_signals()
 ```
+
+### 비동기 실행 인프라 (Progress Bar)
+
+무거운 시뮬레이션은 `WorkerThread`(QThread)에서 실행되어 GUI가 멈추지 않습니다.
+`ProgressDialog`가 진행률을 표시하며, 사용자가 Force Stop 버튼으로 취소할 수 있습니다.
+
+```
+run_with_progress(fn, title, on_finished)
+├── 모든 QPushButton 비활성화
+├── ProgressDialog 생성 (모달, Force Stop 버튼)
+├── WorkerThread 생성 + 시작
+│   ├── fn(progress_callback=...) 실행
+│   │   └── progress_callback(current, total, msg) → ProgressDialog 갱신
+│   │       └── _cancelled가 True이면 CancellationError 발생
+│   ├── finished → _on_task_finished(result, callback) → 정리 + callback 호출
+│   ├── error → _on_task_error(error_msg) → 정리 + 에러 출력
+│   └── cancelled → _on_task_cancelled() → 정리 + "Task cancelled" 출력
+└── Force Stop 클릭 → _request_cancel() → worker.cancel() + 다이얼로그 UI 갱신
+```
+
+`run_with_progress`를 사용하는 핸들러 (5개):
+
+| 탭 | 메서드 | 다이얼로그 제목 |
+|---|---|---|
+| Tab 2 | `calculate_OTF` | "Calculating OTF (Microscope)" |
+| Tab 3 | `asw_compute_attenuation` | "Computing Brightness Attenuation" |
+| Tab 4 | `prj_calculate_OTF` | "Calculating OTF (Projection)" |
+| Tab 4 | `prj_generate_projected_image` | "Generating Projected Image" |
+| Tab 4 | `prj_create_PSFcrs` | "PSF Propagation (64 steps)" |
 
 ### 메서드 명명 규칙
 

@@ -228,7 +228,7 @@ Period: {period_px:.1f} px ({period_um:.1f} um)    ← pixel_size_um 지정 시
 2. **2. Auto-Detect Angle** → 2D FFT로 사인파 방향 자동 검출, Detected angle 필드에 표시
 3. (선택) Manual angle 값 수정 → 자동 검출 결과 대신 사용자 지정 각도 사용
 4. **3. Analyze & Plot** → 이미지 회전 + 1D FFT 분석 + 팝업 figure 표시
-5. **4. Save Figure** → 분석 figure를 세션 폴더에 PNG 저장
+5. **4. Save Figure** → 폴더 선택 다이얼로그에서 저장 위치 지정 → 분석 figure (`fft_analysis.png`)와 회전된 이미지 (`fft_rotated_image.bmp`)를 함께 저장
 
 ### GUI 파라미터 위젯
 

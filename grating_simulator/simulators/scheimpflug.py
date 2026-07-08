@@ -260,38 +260,36 @@ class Scheimpflug_simulator():
 
     def imshow_result(self):
         pad = self.pad
-        self.warped_crop = self.warped_image[pad:self.H-pad,pad:self.W-pad]
-        extent_x = np.array([0, self.warped_crop.shape[1]]) * self.pixel_size_mm
-        extent_y = np.array([0, self.warped_crop.shape[0]]) * self.pixel_size_mm
+        if hasattr(self, 'final_result') and self.final_result is not None:
+            img = self.final_result
+        else:
+            img = self.warped_image
+        img_crop = img[pad:self.H-pad, pad:self.W-pad]
+        extent_x = np.array([0, img_crop.shape[1]]) * self.pixel_size_mm
+        extent_y = np.array([0, img_crop.shape[0]]) * self.pixel_size_mm
 
-        # Create figure with subplots
         fig = plt.figure(figsize=(10, 9))
         gs = plt.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[3, 1])
 
-        # Main image plot
-        ax_main = plt.subplot(gs[0,0])
-        im = ax_main.imshow(self.warped_crop, cmap='gray', extent=[extent_x[0], extent_x[1], extent_y[1], extent_y[0]], vmin=0, vmax=255)
+        ax_main = plt.subplot(gs[0, 0])
+        ax_main.imshow(img_crop, cmap='gray', extent=[extent_x[0], extent_x[1], extent_y[1], extent_y[0]], vmin=0, vmax=255)
         ax_main.set_xlabel('Width (mm)')
         ax_main.set_ylabel('Height (mm)')
 
-        # X cross section
-        ax_x = plt.subplot(gs[1,0])
-        x_pixels = np.arange(0, self.warped_crop.shape[1])
-        x_mm = x_pixels * self.pixel_size_mm
-        ax_x.plot(x_mm, self.warped_crop[self.warped_crop.shape[0]//2,:])
+        ax_x = plt.subplot(gs[1, 0])
+        x_mm = np.arange(img_crop.shape[1]) * self.pixel_size_mm
+        ax_x.plot(x_mm, img_crop[img_crop.shape[0] // 2, :])
         ax_x.set_xlabel('Width (mm)')
         ax_x.set_ylabel('Intensity')
-        ax_x.set_ylim(0,255)
+        ax_x.set_ylim(0, 255)
 
-        # Y cross section
-        ax_y = plt.subplot(gs[0,1])
-        y_pixels = np.arange(0, self.warped_crop.shape[0])
-        y_mm = y_pixels * self.pixel_size_mm
-        ax_y.plot(self.warped_crop[:,self.warped_crop.shape[1]//2], y_mm)
+        ax_y = plt.subplot(gs[0, 1])
+        y_mm = np.arange(img_crop.shape[0]) * self.pixel_size_mm
+        ax_y.plot(img_crop[:, img_crop.shape[1] // 2], y_mm)
         ax_y.set_xlabel('Intensity')
         ax_y.set_ylabel('Height (mm)')
-        ax_y.invert_yaxis()  # Y축 방향 반전
-        ax_y.set_xlim(0,255)
+        ax_y.invert_yaxis()
+        ax_y.set_xlim(0, 255)
 
         plt.tight_layout()
         return fig
@@ -301,128 +299,67 @@ class Scheimpflug_simulator():
         self.load_image(bmp_path)
         self.load_proj_image_parameters(json_path)
         if parameters is not None:
-            self.update_parameters()    
+            self.update_parameters()
         self.initialize_optics()
         self.check_simulation_condition()
 
         self.apply_homography()
-        # self.flat_distance_map, self.tilted_distance_map = self.compute_pixel_to_camera_distance_GPU()
-        self.compute_pixel_to_camera_distance_and_scale_gpu()
+        self.compute_pixel_to_camera_distance_and_scale()
+        self.final_result = self.inv_sqr_raw * self.attenuation_map * self.warped_image
         self.imshow_result()
 
 
-    def compute_pixel_to_camera_distance_and_scale(self):
-        """Thin wrapper: picks GPU (torch) or CPU (numpy) backend."""
-        try:
-            import torch
-            self._compute_distance_and_scale_gpu(torch)
-        except ImportError:
-            print("torch not available, using numpy CPU fallback.")
-            self._compute_distance_and_scale_cpu()
+    def compute_pixel_to_camera_distance_and_scale(self, progress_callback=None):
+        """역 호모그래피의 야코비안 행렬식으로 Scheimpflug 배율 변화에 의한 밝기 감쇠를 계산.
+
+        |det(J_{H^{-1}})| = 로컬 면적 스케일링 = 1/M_local² (정규화 후).
+        x축 회전만 있을 때 (y_rot=0): w = H_inv[2,1]*v + H_inv[2,2] → 행 방향만 변화.
+        """
+        print("Computing brightness attenuation (Jacobian method)...")
+
+        if progress_callback:
+            progress_callback(0, 2, "Jacobian of inverse homography")
+
+        H_inv = np.linalg.inv(self.homographyMTX)
+        h = H_inv.astype(np.float64)
+
+        u_arr = np.arange(self.W, dtype=np.float64)
+        v_arr = np.arange(self.H, dtype=np.float64)
+        uu, vv = np.meshgrid(u_arr, v_arr)
+
+        w = h[2, 0] * uu + h[2, 1] * vv + h[2, 2]
+        x_p = h[0, 0] * uu + h[0, 1] * vv + h[0, 2]
+        y_p = h[1, 0] * uu + h[1, 1] * vv + h[1, 2]
+        u_p = x_p / w
+        v_p = y_p / w
+
+        du_du = (h[0, 0] - u_p * h[2, 0]) / w
+        du_dv = (h[0, 1] - u_p * h[2, 1]) / w
+        dv_du = (h[1, 0] - v_p * h[2, 0]) / w
+        dv_dv = (h[1, 1] - v_p * h[2, 1]) / w
+
+        det_J = du_du * dv_dv - du_dv * dv_du
+
+        inv_sqr_raw = np.abs(det_J)
+        inv_sqr_raw /= np.max(inv_sqr_raw)
+        self.inv_sqr_raw = inv_sqr_raw.astype(np.float32)
+
+        if progress_callback:
+            progress_callback(1, 2, "Computing cos⁴θ (reference)")
+
+        # cos⁴θ natural vignetting — 기하학적 cos⁴θ (Lambert + solid angle + off-axis distance).
+        # macro lens의 FoV가 작으므로 효과는 미약하나, inv_sqr_raw와 함께 final_result에 적용.
+        K_inv = np.linalg.inv(self.K).astype(np.float64)
+        p_flat = np.stack([u_p.ravel(), v_p.ravel(), np.ones(self.H * self.W)], axis=1)
+        d = p_flat @ K_inv.T
+        d_norm = d / np.linalg.norm(d, axis=1, keepdims=True)
+        self.attenuation_map = (d_norm[:, 2] ** 4).reshape(self.H, self.W).astype(np.float32)
+
+        if progress_callback:
+            progress_callback(2, 2, "Done")
 
     # keep old name as alias
     compute_pixel_to_camera_distance_and_scale_gpu = compute_pixel_to_camera_distance_and_scale
-
-    def _compute_distance_and_scale_gpu(self, torch):
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print(f"Computing distance maps on {device}...")
-
-        K_inv = torch.tensor(np.linalg.inv(self.K), device=device, dtype=torch.float32)
-
-        u, v = torch.meshgrid(torch.arange(self.W, device=device), torch.arange(self.H, device=device))
-        u = u.t().reshape(-1)
-        v = v.t().reshape(-1)
-
-        # Flat image distances (d0)
-        d = torch.stack([u, v, torch.ones_like(u)], dim=1).float()
-        d = torch.matmul(d, K_inv.t())
-        s_d0 = self.d0 / d[:, 2]
-        X1_d0 = d * s_d0.unsqueeze(1)
-        flat_distance_map_d0 = torch.norm(X1_d0, dim=1).reshape(self.H, self.W)
-
-        # Flat image distances (d1)
-        s_d1 = self.di / d[:, 2]
-        X1_d1 = d * s_d1.unsqueeze(1)
-        flat_distance_map_d1 = torch.flip(torch.norm(X1_d1, dim=1).reshape(self.H, self.W), dims=[0])
-
-        # Tilted image distances (d0)
-        homographyMTX_inv = torch.tensor(np.linalg.inv(self.homographyMTX), device=device, dtype=torch.float32)
-        p_est_h = torch.matmul(torch.stack([u, v, torch.ones_like(u)], dim=1).float(), homographyMTX_inv.t())
-        p_est = p_est_h[:, :2] / p_est_h[:, 2].unsqueeze(1)
-
-        d = torch.stack([p_est[:, 0], p_est[:, 1], torch.ones_like(p_est[:, 0])], dim=1)
-        d = torch.matmul(d, K_inv.t())
-        s_d0 = self.d0 / d[:, 2]
-        X1_d0 = d * s_d0.unsqueeze(1)
-        tilted_distance_map_d0 = torch.norm(X1_d0, dim=1).reshape(self.H, self.W)
-
-        # Tilted image distances (d1)
-        s_d1 = self.di / d[:, 2]
-        X1_d1 = d * s_d1.unsqueeze(1)
-        tilted_distance_map_d1 = torch.flip(torch.norm(X1_d1, dim=1).reshape(self.H, self.W), dims=[0])
-
-        # Scale & attenuation
-        tilted_scale_map = tilted_distance_map_d1 / tilted_distance_map_d0
-        inv_sqr_raw = 1 / tilted_scale_map**2
-        inv_sqr_raw /= torch.max(inv_sqr_raw)
-
-        d_norm = d / torch.norm(d, dim=1, keepdim=True)
-        cos_theta = d_norm[:, 2]
-        attenuation_map = (cos_theta**4).reshape(self.H, self.W)
-
-        self.inv_sqr_raw = inv_sqr_raw.cpu().numpy()
-        self.attenuation_map = attenuation_map.cpu().numpy()
-
-    def _compute_distance_and_scale_cpu(self):
-        print("Computing distance maps on CPU (numpy)...")
-
-        K_inv = np.linalg.inv(self.K).astype(np.float32)
-
-        u_arr = np.arange(self.W, dtype=np.float32)
-        v_arr = np.arange(self.H, dtype=np.float32)
-        uu, vv = np.meshgrid(u_arr, v_arr)
-        u = uu.reshape(-1)
-        v = vv.reshape(-1)
-
-        # Flat image distances (d0)
-        coords = np.stack([u, v, np.ones_like(u)], axis=1)
-        d = coords @ K_inv.T
-        s_d0 = self.d0 / d[:, 2]
-        X1_d0 = d * s_d0[:, np.newaxis]
-        flat_distance_map_d0 = np.linalg.norm(X1_d0, axis=1).reshape(self.H, self.W)
-
-        # Flat image distances (d1)
-        s_d1 = self.di / d[:, 2]
-        X1_d1 = d * s_d1[:, np.newaxis]
-        flat_distance_map_d1 = np.flip(np.linalg.norm(X1_d1, axis=1).reshape(self.H, self.W), axis=0)
-
-        # Tilted image distances (d0)
-        homographyMTX_inv = np.linalg.inv(self.homographyMTX).astype(np.float32)
-        p_est_h = coords @ homographyMTX_inv.T
-        p_est = p_est_h[:, :2] / p_est_h[:, 2:3]
-
-        d = np.stack([p_est[:, 0], p_est[:, 1], np.ones_like(p_est[:, 0])], axis=1)
-        d = d @ K_inv.T
-        s_d0 = self.d0 / d[:, 2]
-        X1_d0 = d * s_d0[:, np.newaxis]
-        tilted_distance_map_d0 = np.linalg.norm(X1_d0, axis=1).reshape(self.H, self.W)
-
-        # Tilted image distances (d1)
-        s_d1 = self.di / d[:, 2]
-        X1_d1 = d * s_d1[:, np.newaxis]
-        tilted_distance_map_d1 = np.flip(np.linalg.norm(X1_d1, axis=1).reshape(self.H, self.W), axis=0)
-
-        # Scale & attenuation
-        tilted_scale_map = tilted_distance_map_d1 / tilted_distance_map_d0
-        inv_sqr_raw = 1 / tilted_scale_map**2
-        inv_sqr_raw /= np.max(inv_sqr_raw)
-
-        d_norm = d / np.linalg.norm(d, axis=1, keepdims=True)
-        cos_theta = d_norm[:, 2]
-        attenuation_map = (cos_theta**4).reshape(self.H, self.W)
-
-        self.inv_sqr_raw = inv_sqr_raw
-        self.attenuation_map = attenuation_map
 
     def save_image(self, output_dir=None):
         import os

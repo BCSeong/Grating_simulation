@@ -252,7 +252,7 @@ class Projection_image_simulator():
         print(f'Calcurated Depth of Field : +-{self.DOF_bidirec_mm/2:.4f} mm')
         print()
 
-    def calculate_OTF(self, user_z1_defo_mm = None ,disable_tqdm=False):
+    def calculate_OTF(self, user_z1_defo_mm=None, disable_tqdm=False, progress_callback=None):
         # -----------------------------------------------------------------------------
         # Defocus propagation phase term for FFT-based simulation
         #
@@ -312,10 +312,13 @@ class Projection_image_simulator():
         # -----------------------------------------------------------------------------
 
         OTFs=[]
-        defocus_OTFs=[]       
-        defo_psfs = [] 
+        defocus_OTFs=[]
+        defo_psfs = []
         Phis = []
-        for lamb_um in tqdm(self.wvls_um, desc="Calculating OTF", disable=disable_tqdm):            
+        n_wvls = len(self.wvls_um)
+        for i, lamb_um in enumerate(self.wvls_um):
+            if progress_callback and not disable_tqdm:
+                progress_callback(i, n_wvls, f"OTF: {lamb_um:.4f} um ({i+1}/{n_wvls})")
             cf = self.img_space_na/lamb_um
             P = (self.RHO <= cf).astype(float)
             # Defocus 용 Phase term
@@ -480,13 +483,15 @@ class Projection_image_simulator():
 
       
     
-    def psf_prop(self):
+    def psf_prop(self, progress_callback=None):
         z_step = 64
         self.z_list = np.linspace(-self.DOF_bidirec_mm, self.DOF_bidirec_mm, z_step)
         psfs = []
-        self.defocus_z1_mm = 0 # set defocus to 0 so that magnification_defo = magnification_onfo
-        self.initialize_optics() # initialize grid and optics parameters        
-        for z_mm in tqdm(self.z_list, desc="Calculating PSF propagation"):   
+        self.defocus_z1_mm = 0
+        self.initialize_optics()
+        for i, z_mm in enumerate(self.z_list):
+            if progress_callback:
+                progress_callback(i, z_step, f"PSF propagation: z={z_mm:.3f} mm ({i+1}/{z_step})")
             # calculate OTF with "defocused OTF" within onfocus grid 
             self.calculate_OTF(user_z1_defo_mm=z_mm, disable_tqdm=True)
             
@@ -537,10 +542,10 @@ class Projection_image_simulator():
         self.psf_prop()
         self.plot_matplotlib_psf_crs()
     
-    def check_psf_prop(self):
+    def check_psf_prop(self, progress_callback=None):
         self.initialize_optics()
         self.check_simulation_condition()
-        self.psf_prop()
+        self.psf_prop(progress_callback=progress_callback)
      
         
 def affine_scale_image_with_warp(img, scale, maintain_size=True):

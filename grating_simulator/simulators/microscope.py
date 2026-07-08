@@ -81,9 +81,12 @@ class Microscope_image_simulator():
         print(f'\t->Simulation Condition Check: {"Pass" if crit else "Fail"}')
         print()
 
-    def calculate_OTF(self):
+    def calculate_OTF(self, progress_callback=None):
         OTFs=[]
-        for lamb in tqdm(self.wvls, desc="Calcurating OTF "):
+        n_wvls = len(self.wvls)
+        for i, lamb in enumerate(self.wvls):
+            if progress_callback:
+                progress_callback(i, n_wvls, f"OTF: {lamb:.4f} um ({i+1}/{n_wvls})")
             cf = self.NA/lamb
             pupil = np.zeros_like(self.mask_bmp)
             pupil[self.RHO<=cf]=1

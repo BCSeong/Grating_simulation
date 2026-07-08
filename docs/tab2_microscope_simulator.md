@@ -209,11 +209,25 @@ RHO = √(KX² + KY²)
 
 ---
 
-### `calculate_OTF()`
+### `calculate_OTF(progress_callback=None)`
 
 다색(polychromatic) 유효 OTF를 계산합니다.
 
-**파라미터:** 없음
+**파라미터:**
+
+| 이름 | 타입 | 기본값 | 설명 |
+|---|---|---|---|
+| `progress_callback` | `callable` or `None` | `None` | 진행 상황 콜백. 각 파장 처리 시작 시 호출됨 |
+
+**콜백 시그니처:**
+```python
+callback(current: int, total: int, message: str)
+```
+- `current`: 현재 파장 인덱스 (0-based)
+- `total`: 전체 파장 수 (`len(self.wvls)`)
+- `message`: 진행 메시지 (예: `"OTF: 0.5876 um (1/3)"`)
+
+콜백이 `CancellationError`를 발생시키면 계산이 취소됩니다.
 
 **반환값:** 없음
 
