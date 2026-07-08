@@ -2,26 +2,19 @@
 
 PyInstaller를 이용하여 Python 환경 없이 실행 가능한 standalone EXE를 생성합니다.
 
-## 빌드 옵션 비교
-
-| 스크립트 | torch | Scheimpflug 가속 | 예상 크기 |
-|---|---|---|---|
-| `build.bat` | 제외 | numpy fallback | ~300MB |
-| `build_with_torch.bat` | CPU-only 포함 | torch CPU | ~500MB |
-
-> **CUDA torch를 그대로 번들하면 ~2-3GB**가 됩니다. `build_with_torch.bat`은 CPU-only torch를 설치하여 크기를 억제합니다.
-
 ## 빠른 빌드
 
 ```bash
-# torch 없이 (최소 크기)
 build.bat
-
-# torch 포함 (CPU-only, Scheimpflug 가속)
-build_with_torch.bat
 ```
 
-결과물: `dist\GratingSimulator\` 폴더
+실행하면:
+1. PyInstaller 자동 설치
+2. CPU-only torch 설치 (CUDA 제외, 빌드 크기 억제)
+3. EXE 빌드 (onedir 모드)
+4. 결과물: `dist\GratingSimulator\` 폴더 (~500MB)
+
+> **참고**: CUDA torch를 그대로 번들하면 ~2-3GB가 됩니다. CPU-only torch로 ~500MB에 억제됩니다. Scheimpflug 시뮬레이터는 torch CPU로 동작합니다.
 
 ## 배포
 
@@ -29,9 +22,9 @@ build_with_torch.bat
 
 > **참고**: `GratingSimulator.exe` 단독으로는 실행되지 않습니다. 같은 폴더의 DLL/라이브러리가 모두 필요합니다.
 
-## torch 빌드 후 개발환경 복구
+## 빌드 후 개발환경 복구
 
-`build_with_torch.bat`은 venv의 torch를 CPU-only로 교체합니다. 개발용 CUDA torch를 복구하려면:
+`build.bat`은 venv의 torch를 CPU-only로 교체합니다. 개발용 CUDA torch를 복구하려면:
 
 ```bash
 venv\Scripts\pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
@@ -84,6 +77,6 @@ dist\
     ├── python3xx.dll           # Python 런타임
     ├── PySide6\                # Qt 라이브러리
     ├── matplotlib\             # matplotlib 데이터
-    ├── torch\                  # (build_with_torch만)
+    ├── torch\                  # torch CPU 런타임
     └── ...                     # 기타 의존성
 ```
