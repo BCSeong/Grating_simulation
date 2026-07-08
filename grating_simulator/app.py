@@ -1425,11 +1425,17 @@ class MainWindow(QMainWindow):
             print("Error: Load an image first.")
             return
         print("detecting sine wave direction...")
-        angle = self.fft_analyzer.analyze_sine_direction()
-        self.ui.fftDetectedAngleLineEdit.setText(f"{angle:.3f}")
-        self.ui.fftDetectedAngleLineEdit.setStyleSheet("background-color: #90EE90;")
-        self.ui.fftManualAngleSpinBox.setValue(angle)
-        print(f"\t-> detected angle: {angle:.3f} deg\n")
+
+        def task(progress_callback):
+            return self.fft_analyzer.analyze_sine_direction(progress_callback=progress_callback)
+
+        def on_finished(angle):
+            self.ui.fftDetectedAngleLineEdit.setText(f"{angle:.3f}")
+            self.ui.fftDetectedAngleLineEdit.setStyleSheet("background-color: #90EE90;")
+            self.ui.fftManualAngleSpinBox.setValue(angle)
+            print(f"\t-> detected angle: {angle:.3f} deg\n")
+
+        self.run_with_progress(task, "Auto-Detecting Angle", on_finished)
 
     def fft_preview_rotation(self):
         if not hasattr(self, '_fft_preview_img') or self._fft_preview_img is None:
@@ -1504,28 +1510,34 @@ class MainWindow(QMainWindow):
 
         manual_angle = self.ui.fftManualAngleSpinBox.value()
         pixel_size = self.ui.fftPixelSizeSpinBox.value()
-
         print(f"analyzing at angle {manual_angle:.3f} deg...")
-        self.fft_analyzer.rotate_and_extract(angle_deg=manual_angle)
 
-        self.display_image(self.ui.fft_rotated_view, self.fft_analyzer.rotated_img, normalize=False)
+        def task(progress_callback):
+            self.fft_analyzer.rotate_and_extract(angle_deg=manual_angle,
+                                                 progress_callback=progress_callback)
 
-        self._fft_fig = self.fft_analyzer.plot_analysis(pixel_size_um=pixel_size)
+        def on_finished(_result):
+            self.display_image(self.ui.fft_rotated_view,
+                               self.fft_analyzer.rotated_img, normalize=False)
 
-        self.ui.pop_ZGV = ZoomableGraphicsView()
-        self.popup_window = PopupWindow()
-        self.popup_window.layout.addWidget(self.ui.pop_ZGV)
-        self.popup_window.display_matplotlib_fig(self.ui.pop_ZGV, self._fft_fig)
-        self.popup_window.show()
+            self._fft_fig = self.fft_analyzer.plot_analysis(pixel_size_um=pixel_size)
 
-        fig_path = os.path.join(self.session_dir, 'fft_analysis.png')
-        self._fft_fig.savefig(fig_path, dpi=150)
-        print(f"\t-> figure saved to {fig_path}")
-        if self.fft_analyzer.rotated_img is not None:
-            rotated_path = os.path.join(self.session_dir, 'fft_rotated_image.bmp')
-            cv2.imwrite(rotated_path, self.fft_analyzer.rotated_img)
-            print(f"\t-> rotated image saved to {rotated_path}")
-        print("\t-> analysis complete.\n")
+            self.ui.pop_ZGV = ZoomableGraphicsView()
+            self.popup_window = PopupWindow()
+            self.popup_window.layout.addWidget(self.ui.pop_ZGV)
+            self.popup_window.display_matplotlib_fig(self.ui.pop_ZGV, self._fft_fig)
+            self.popup_window.show()
+
+            fig_path = os.path.join(self.session_dir, 'fft_analysis.png')
+            self._fft_fig.savefig(fig_path, dpi=150)
+            print(f"\t-> figure saved to {fig_path}")
+            if self.fft_analyzer.rotated_img is not None:
+                rotated_path = os.path.join(self.session_dir, 'fft_rotated_image.bmp')
+                cv2.imwrite(rotated_path, self.fft_analyzer.rotated_img)
+                print(f"\t-> rotated image saved to {rotated_path}")
+            print("\t-> analysis complete.\n")
+
+        self.run_with_progress(task, "Analyzing FFT", on_finished)
 
     def fft_save_figure(self):
         if not hasattr(self, '_fft_fig') or self._fft_fig is None:

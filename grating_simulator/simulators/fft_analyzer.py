@@ -26,7 +26,10 @@ class FFTImageAnalyzer:
         self.user_angle_deg = None
         self.rotated_img = None
 
-    def analyze_sine_direction(self):
+    def analyze_sine_direction(self, progress_callback=None):
+        if progress_callback:
+            progress_callback(1, 3, "Preparing image...")
+
         rows, cols = self.img.shape
         crop_h, crop_w = rows // 2, cols // 2
         start_y = (rows - crop_h) // 2
@@ -36,6 +39,9 @@ class FFTImageAnalyzer:
         rows_c, cols_c = cropped.shape
         window = np.outer(np.hanning(rows_c), np.hanning(cols_c))
         cropped *= window
+
+        if progress_callback:
+            progress_callback(2, 3, "Computing 2D FFT...")
 
         f_transform = np.fft.fft2(cropped)
         f_shift = np.fft.fftshift(f_transform)
@@ -66,6 +72,9 @@ class FFTImageAnalyzer:
         else:
             ref_y, ref_x = float(peak_y), float(peak_x)
 
+        if progress_callback:
+            progress_callback(3, 3, "Detecting angle...")
+
         alpha = np.degrees(np.arctan2(ref_y - cy, ref_x - cx))
         rotation = alpha + 90
         self.detected_angle_deg = ((rotation + 45) % 90) - 45
@@ -85,12 +94,15 @@ class FFTImageAnalyzer:
         peak_mag = np.max(magnitude) if len(magnitude) > 0 else 0
         return freqs, magnitude, peak_mag
 
-    def rotate_and_extract(self, angle_deg=None):
+    def rotate_and_extract(self, angle_deg=None, progress_callback=None):
         if angle_deg is not None:
             self.user_angle_deg = angle_deg
             use_angle = angle_deg
         else:
             use_angle = self.detected_angle_deg
+
+        if progress_callback:
+            progress_callback(1, 3, "Rotating image...")
 
         h, w = self.img.shape[:2]
         M = cv2.getRotationMatrix2D((w / 2, h / 2), use_angle, 1.0)
@@ -102,10 +114,16 @@ class FFTImageAnalyzer:
         M[1, 2] += (new_h - h) / 2
         self.rotated_img = cv2.warpAffine(self.img, M, (new_w, new_h))
 
+        if progress_callback:
+            progress_callback(2, 3, "Extracting profiles...")
+
         center_row = self.rotated_img.shape[0] // 2
         center_col = self.rotated_img.shape[1] // 2
         self.h_profile = self.rotated_img[center_row, :].astype(np.float64)
         self.v_profile = self.rotated_img[:, center_col].astype(np.float64)
+
+        if progress_callback:
+            progress_callback(3, 3, "Computing 1D FFT...")
 
         h_freqs, h_mag, h_peak = self._extract_1d_fft(self.h_profile)
         v_freqs, v_mag, v_peak = self._extract_1d_fft(self.v_profile)
